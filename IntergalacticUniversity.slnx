@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Элементы решения/">
+    <File Path=".editorconfig" />
+    <File Path="Settings.StyleCop.json" />
+  </Folder>
+  <Project Path="IntergalacticUniversity.Console/IntergalacticUniversity.Console.csproj" Id="fa2efa82-bb09-458c-bf12-3798079f3b33" />
+  <Project Path="IntergalacticUniversity.Core/IntergalacticUniversity.Core.csproj" Id="16d99a00-710c-4f34-accc-e819c99064fa" />
+  <Project Path="IntergalacticUniversity.Tests/IntergalacticUniversity.Tests.csproj" Id="aef03f91-bba8-4bf4-8b26-e44a2877e11f" />
+</Solution>
