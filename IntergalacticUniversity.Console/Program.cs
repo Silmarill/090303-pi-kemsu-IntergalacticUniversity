@@ -15,7 +15,7 @@ namespace IntergalacticUniversity {
       RatingCalculator calculator = new RatingCalculator(attendanceRepo, assignmentsRepo);
 
       // Данные студента и курса (можно заменить на ввод)
-      Student student = new Student { Id = 1, Name = "Алексей Звёздный" };
+      Student student = new Student { Id = 1, Name = "Гена Крокодил" };
 
       Console.WriteLine("Выберите тип аттестации: 1 - Экзамен, 2 - Зачёт");
       string choice = Console.ReadLine();
