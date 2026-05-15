@@ -1,5 +1,4 @@
-﻿using NUnit.Framework;
-using IntergalacticUniversity.Core.Services;
+﻿using IntergalacticUniversity.Core.Services;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
@@ -12,8 +11,12 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(88, "Отлично")]
     [TestCase(100, "Отлично")]
     public void ConvertToGrade_OnBoundaryValues_ReturnsCorrectGrade(double totalScore, string expectedGrade) {
-      RatingCalculator calculator = new RatingCalculator(null, null);
-      string grade = calculator.ConvertToGrade(totalScore);
+      RatingCalculator calculator;
+      string grade;
+
+      calculator = new RatingCalculator(null, null);
+      grade = calculator.ConvertToGrade(totalScore);
+
       Assert.That(grade, Is.EqualTo(expectedGrade));
     }
   }

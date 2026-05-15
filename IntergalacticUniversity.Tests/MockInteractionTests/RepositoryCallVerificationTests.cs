@@ -1,5 +1,4 @@
 ﻿using Moq;
-using NUnit.Framework;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
@@ -9,20 +8,40 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
   public class RepositoryCallVerificationTests {
     [Test]
     public void CalculateCurrentScore_CallsRepositoriesWithCorrectArguments_OnceEach() {
-      Student student = new Student { Id = 1 };
-      Course course = new Course {
-        Type = ExamType.Exam,
-        MaxRawAssignmentsScore = 1000.0,
-        TotalClasses = 30,
-        MaxAttendanceScore = 20
-      };
-      Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(15);
-      mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(500.0);
+      Student student;
+      Course course;
+      Mock<IAttendanceRepository> mockAttendance;
+      Mock<IAssignmentsRepository> mockAssignments;
+      RatingCalculator calculator;
+      double rawScore;
+      int attendedClasses;
+      double maxRaw;
+      int totalClasses;
+      int maxAttendance;
 
-      RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
-      calculator.CalculateCurrentScore(student, course);
+      student = new Student { Id = 1 };
+
+      maxRaw = 1000.0;
+      totalClasses = 30;
+      maxAttendance = 20;
+      rawScore = 500.0;
+      attendedClasses = 15;
+
+      course = new Course {
+        Type = ExamType.Exam,
+        MaxRawAssignmentsScore = maxRaw,
+        TotalClasses = totalClasses,
+        MaxAttendanceScore = maxAttendance
+      };
+
+      mockAttendance = new Mock<IAttendanceRepository>();
+      mockAssignments = new Mock<IAssignmentsRepository>();
+
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attendedClasses);
+      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScore);
+
+      calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
+      _ = calculator.CalculateCurrentScore(student, course);
 
       mockAttendance.Verify(r => r.GetAttendedClasses(student, course), Times.Once);
       mockAssignments.Verify(r => r.GetRawScore(student, course), Times.Once);

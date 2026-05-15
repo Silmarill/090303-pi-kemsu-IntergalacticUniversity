@@ -1,6 +1,4 @@
-﻿using System;
-using Moq;
-using NUnit.Framework;
+﻿using Moq;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
@@ -10,20 +8,37 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
   public class ExceptionPropagationTests {
     [Test]
     public void CalculateCurrentScore_WhenRepositoryThrowsException_PropagatesException() {
-      Student student = new Student { Id = 1 };
-      Course course = new Course {
+      Student student;
+      Course course;
+      Mock<IAttendanceRepository> mockAttendance;
+      Mock<IAssignmentsRepository> mockAssignments;
+      RatingCalculator calculator;
+      double maxRaw;
+      int totalClasses;
+      int maxAttendance;
+
+      student = new Student { Id = 1 };
+
+      maxRaw = 1000.0;
+      totalClasses = 30;
+      maxAttendance = 20;
+
+      course = new Course {
         Type = ExamType.Exam,
-        MaxRawAssignmentsScore = 1000.0,
-        TotalClasses = 30,
-        MaxAttendanceScore = 20
+        MaxRawAssignmentsScore = maxRaw,
+        TotalClasses = totalClasses,
+        MaxAttendanceScore = maxAttendance
       };
-      Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      mockAttendance.Setup(r => r.GetAttendedClasses(student, course))
+
+      mockAttendance = new Mock<IAttendanceRepository>();
+      mockAssignments = new Mock<IAssignmentsRepository>();
+
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course))
                     .Throws(new TimeoutException("Database timeout"));
 
-      RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
-      Assert.Throws<TimeoutException>(() => calculator.CalculateCurrentScore(student, course));
+      calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
+
+      _ = Assert.Throws<TimeoutException>(() => calculator.CalculateCurrentScore(student, course));
     }
   }
 }
