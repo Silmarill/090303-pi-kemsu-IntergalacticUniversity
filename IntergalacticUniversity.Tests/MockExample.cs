@@ -33,5 +33,62 @@ namespace IntergalacticUniversity.Tests {
       // Ожидаем: задания 0.5*(60-20)=20, посещаемость 0.5*20=10, экзамен 30 -> итого 60
       Assert.That(total, Is.EqualTo(60.0));
     }
+    // ===== ДОБАВЛЕННЫЙ ТЕСТ 2: Проверка вызова методов репозитория =====
+    [Test]
+    public void CalculateCurrentScore_CallsRepositoriesExactlyOnce() {
+      Mock<IAssignmentsRepository> assignmentsMock = new Mock<IAssignmentsRepository>();
+      Mock<IAttendanceRepository> attendanceMock = new Mock<IAttendanceRepository>();
+      Student student = new Student { Id = 1 };
+      Course course = new Course { Type = ExamType.Exam };
+
+      _ = assignmentsMock.Setup(r => r.GetRawScore(student, course)).Returns(500);
+      _ = attendanceMock.Setup(r => r.GetAttendedClasses(student, course)).Returns(15);
+
+      RatingCalculator calculator = new RatingCalculator(attendanceMock.Object, assignmentsMock.Object);
+
+      _ = calculator.CalculateCurrentScore(student, course);
+
+      assignmentsMock.Verify(r => r.GetRawScore(student, course), Times.Once);
+      attendanceMock.Verify(r => r.GetAttendedClasses(student, course), Times.Once);
+    }
+
+    [Test]
+    public void CalculateCurrentScore_WhenRawScoreIsNull_OnlyAttendanceScoreUsed() {
+      Mock<IAssignmentsRepository> assignmentsMock = new Mock<IAssignmentsRepository>();
+      Mock<IAttendanceRepository> attendanceMock = new Mock<IAttendanceRepository>();
+      Student student = new Student { Id = 1 };
+      Course course = new Course {
+        Type = ExamType.Exam,
+        MaxRawAssignmentsScore = 800,
+        MaxAttendanceScore = 20,
+        TotalClasses = 40
+      };
+
+      _ = assignmentsMock.Setup(r => r.GetRawScore(student, course)).Returns((double?)null);
+      _ = attendanceMock.Setup(r => r.GetAttendedClasses(student, course)).Returns(40);
+
+      RatingCalculator calculator = new RatingCalculator(attendanceMock.Object, assignmentsMock.Object);
+
+      double result = calculator.CalculateCurrentScore(student, course);
+
+      Assert.That(result, Is.EqualTo(20));
+    }
+
+    [Test]
+    public void CalculateCurrentScore_WhenRepositoryThrowsException_PropagatesException() {
+      Mock<IAssignmentsRepository> assignmentsMock = new Mock<IAssignmentsRepository>();
+      Mock<IAttendanceRepository> attendanceMock = new Mock<IAttendanceRepository>();
+      Student student = new Student { Id = 1 };
+      Course course = new Course { Type = ExamType.Exam };
+
+      _ = assignmentsMock.Setup(r => r.GetRawScore(student, course))
+          .Throws(new TimeoutException());
+
+      RatingCalculator calculator = new RatingCalculator(attendanceMock.Object, assignmentsMock.Object);
+
+      _ = Assert.Throws<TimeoutException>(() =>
+          calculator.CalculateCurrentScore(student, course)
+      );
+    }
   }
 }
