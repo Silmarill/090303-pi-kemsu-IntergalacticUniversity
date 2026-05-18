@@ -1,4 +1,4 @@
-﻿//16 строку помогал писать ИИ
+﻿//Почти всё сделано ИИ
 
 
 using IntergalacticUniversity.Core.Interfaces;
