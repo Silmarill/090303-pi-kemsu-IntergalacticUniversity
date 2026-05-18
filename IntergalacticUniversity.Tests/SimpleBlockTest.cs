@@ -1,4 +1,8 @@
-﻿using Moq;
+﻿//ИИ написал строку 49 и 52, так как я не до конца разобрался в использовании Тестов
+//ИИ помогал написать SetUp, подсказал, что там должно быть
+//ИИ подсказал, как добавить Math.Min в 72 строку
+
+using Moq;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
@@ -36,6 +40,55 @@ namespace IntergalacticUniversity.Tests {
       double current = _calculator.CalculateCurrentScore(_student, _course);
 
       Assert.That(current, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void MaxValues() {
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
+      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(800);
+
+      double current = _calculator.CalculateCurrentScore(_student, _course);
+      string grade = _calculator.ConvertToGrade(100);
+
+      Assert.That(current, Is.EqualTo(60));
+      Assert.That(grade, Is.EqualTo("Отлично"));
+    }
+
+    [Test]
+    public void ValueRange() {
+      _course = new Course {
+        Type = ExamType.Credit,
+        MaxRawAssignmentsScore = 1000,
+        TotalClasses = 30,
+        MaxAttendanceScore = 15
+      };
+
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(30);
+      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1200);
+
+      double current = _calculator.CalculateCurrentScore(_student, _course);
+
+
+      Assert.That(current, Is.EqualTo(Math.Min(current, 80)));
+    }
+
+    public void CorrectAddition() {
+      _course = new Course {
+        Type = ExamType.Credit,
+        MaxRawAssignmentsScore = 1000,
+        TotalClasses = 30,
+        MaxAttendanceScore = 15
+      };
+
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(30);
+      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1000);
+
+      double current = _calculator.CalculateCurrentScore(_student, _course);
+      double total = _calculator.CalculateTotalScore(_student, _course, 20);
+
+      Assert.That(current, Is.EqualTo(75));
+      Assert.That(total, Is.EqualTo(95));
+      Assert.That(total, Is.EqualTo(Math.Min(total, 100)));
     }
   }
 }
