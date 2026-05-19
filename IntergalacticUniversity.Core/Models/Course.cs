@@ -10,5 +10,6 @@
     public double MaxRawAssignmentsScore { get; set; }
     public int TotalClasses { get; set; }
     public int MaxAttendanceScore { get; set; }
+    public int MaxCurrent { get; set; }
   }
 }

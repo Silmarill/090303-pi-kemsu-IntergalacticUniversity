@@ -6,6 +6,22 @@ using IntergalacticUniversity.Core.Services;
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class RatingCalculatorTestsBlock2 {
+    // Конфигурация экзаменационного курса
+    private const double examMaxRawScore = 1000;
+    private const int examTotalClasses = 40;
+    private const int examMaxAttendanceScore = 20;
+
+    // Конфигурация зачетного курса
+    private const double creditMaxRawScore = 1000;
+    private const int creditTotalClasses = 40;
+    private const int creditMaxAttendanceScore = 10;
+    private const int creditMaxCurrent = 80; // Лимит сверху для зачета
+
+    // Параметры для комбинированного теста
+    private const int customExamMaxRawScore = 600;
+    private const int customExamTotalClasses = 20;
+    private const int customExamMaxAttendanceScore = 15;
+
     private Student _student;
     private Course _examCourse;
     private Course _creditCourse;
@@ -21,18 +37,19 @@ namespace IntergalacticUniversity.Tests {
         CourseId = 1,
         Name = "Физика",
         Type = ExamType.Exam,
-        MaxRawAssignmentsScore = 1000,
-        TotalClasses = 40,
-        MaxAttendanceScore = 20
+        MaxRawAssignmentsScore = examMaxRawScore,
+        TotalClasses = examTotalClasses,
+        MaxAttendanceScore = examMaxAttendanceScore
       };
 
       _creditCourse = new Course {
         CourseId = 2,
         Name = "Базы данных",
         Type = ExamType.Credit,
-        MaxRawAssignmentsScore = 1000,
-        TotalClasses = 40,
-        MaxAttendanceScore = 10
+        MaxRawAssignmentsScore = creditMaxRawScore,
+        TotalClasses = creditTotalClasses,
+        MaxAttendanceScore = creditMaxAttendanceScore,
+        MaxCurrent = creditMaxCurrent
       };
 
       _mockAttendance = new Mock<IAttendanceRepository>();
@@ -40,7 +57,7 @@ namespace IntergalacticUniversity.Tests {
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
-    // Проверка 2.1: Границы перевода баллов в оценку
+    // Проверка 2.1:
     [TestCase(49, "Неудовлетворительно")]
     [TestCase(51, "Удовлетворительно")]
     [TestCase(60, "Удовлетворительно")]
@@ -53,19 +70,21 @@ namespace IntergalacticUniversity.Tests {
       Assert.That(result, Is.EqualTo(expectedGrade));
     }
 
-    // Проверка 2.2: Параметризация баллов за задания
+    // Проверка 2.2:
     [TestCase(0, 0)]
     [TestCase(300, 12)]
     [TestCase(1000, 40)]
     public void CalculateCurrentScore_DifferentAssignmentPercentages_ReturnsCorrectAssignmentPart(
         double rawScore, double expectedAssignmentScore) {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(40);
+      const int maxAttendance = 40; // 100% посещений
 
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(maxAttendance);
+
+      double expectedTotal = expectedAssignmentScore + examMaxAttendanceScore;
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      double expected = expectedAssignmentScore + 20;
-      Assert.That(result, Is.EqualTo(expected).Within(0.001));
+      Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
 
     // Проверка 2.3: Параметризация посещаемости
@@ -74,13 +93,16 @@ namespace IntergalacticUniversity.Tests {
     [TestCase(0, 0)]
     public void CalculateCurrentScore_DifferentAttendancePercentages_ReturnsCorrectAttendancePart(
         int attendedClasses, double expectedAttendanceScore) {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1000);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attendedClasses);
+      const double maxRawScore = 1000; // 100% выполнения заданий
 
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(maxRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attendedClasses);
+
+      const double assignmentMaxScoreForCredit = 70;
+      double expectedTotal = assignmentMaxScoreForCredit + expectedAttendanceScore;
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
 
-      double expected = 70 + expectedAttendanceScore;
-      Assert.That(result, Is.EqualTo(expected).Within(0.001));
+      Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
 
     // Проверка 2.4: Комбинированный тест
@@ -90,20 +112,25 @@ namespace IntergalacticUniversity.Tests {
     [TestCase(100, 0, 40)]
     public void CalculateCurrentScore_CombinedPercentages_ReturnsExpectedCurrent(
         int rawPercent, int attendancePercent, double expectedCurrent) {
-      var customCourse = new Course {
+      // ИИ помог: Создание кастомного курса с именованными константами
+      Course customCourse = new Course {
         CourseId = 3,
         Name = "Комбинированный курс",
         Type = ExamType.Exam,
-        MaxRawAssignmentsScore = 600,
-        TotalClasses = 20,
-        MaxAttendanceScore = 15
+        MaxRawAssignmentsScore = customExamMaxRawScore,
+        TotalClasses = customExamTotalClasses,
+        MaxAttendanceScore = customExamMaxAttendanceScore
       };
 
-      double rawScore = (rawPercent / 100.0) * 600;
-      int attended = (attendancePercent * 20) / 100;
+      // Расчет значений через проценты
+      double rawScore = rawPercent / 100.0 * customExamMaxRawScore;
 
-      _mockAssignments.Setup(r => r.GetRawScore(_student, customCourse)).Returns(rawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, customCourse)).Returns(attended);
+      // ИИ помог: Расчет attended через double, чтобы избежать потери точности
+      // при целочисленном делении (20 * 50 / 100 = 10, а не 0)
+      int attended = (int)(attendancePercent / 100.0 * customExamTotalClasses);
+
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, customCourse)).Returns(rawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, customCourse)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, customCourse);
       Assert.That(result, Is.EqualTo(expectedCurrent).Within(0.001));
