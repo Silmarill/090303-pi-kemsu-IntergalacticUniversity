@@ -29,8 +29,8 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
 
     [Test]
     public void CalculateCurrentScore_WhenRawScoreIsNull_ReturnsOnlyAttendanceScore() {
-      _ = _assignmentsMock.Setup(m => m.GetRawScore(_testStudent, _testCourse)).Returns((double?)null);
-      _ = _attendanceMock.Setup(m => m.GetAttendedClasses(_testStudent, _testCourse)).Returns(10);
+      _ = _assignmentsMock.Setup(mock => mock.GetRawScore(_testStudent, _testCourse)).Returns((double?)null);
+      _ = _attendanceMock.Setup(mock => mock.GetAttendedClasses(_testStudent, _testCourse)).Returns(10);
 
       double score = _calculator.CalculateCurrentScore(_testStudent, _testCourse);
 
@@ -39,8 +39,8 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
 
     [Test]
     public void CalculateCurrentScore_WhenAttendanceIsNull_ReturnsOnlyAssignmentsScore() {
-      _ = _assignmentsMock.Setup(m => m.GetRawScore(_testStudent, _testCourse)).Returns(500.0);
-      _ = _attendanceMock.Setup(m => m.GetAttendedClasses(_testStudent, _testCourse)).Returns((int?)null);
+      _ = _assignmentsMock.Setup(mock => mock.GetRawScore(_testStudent, _testCourse)).Returns(500.0);
+      _ = _attendanceMock.Setup(mock => mock.GetAttendedClasses(_testStudent, _testCourse)).Returns((int?)null);
 
       double score = _calculator.CalculateCurrentScore(_testStudent, _testCourse);
 

@@ -12,7 +12,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       Course course = new Course { Type = ExamType.Exam };
 
       Mock<IAssignmentsRepository> mockAssign = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
-      _ = mockAssign.Setup(m => m.GetRawScore(It.IsAny<Student>(), It.IsAny<Course>())).Throws<TimeoutException>();
+      _ = mockAssign.Setup(mock => mock.GetRawScore(It.IsAny<Student>(), It.IsAny<Course>())).Throws<TimeoutException>();
 
       Mock<IAttendanceRepository> mockAttend = new Mock<IAttendanceRepository>(MockBehavior.Strict);
       RatingCalculator calculator = new RatingCalculator(mockAttend.Object, mockAssign.Object);

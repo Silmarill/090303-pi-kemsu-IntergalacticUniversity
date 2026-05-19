@@ -30,8 +30,8 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
         MaxAttendanceScore = 20
       };
 
-      _ = _assignmentsMock.Setup(m => m.GetRawScore(_testStudent, course)).Returns(rawScore);
-      _ = _attendanceMock.Setup(m => m.GetAttendedClasses(_testStudent, course)).Returns(30);
+      _ = _assignmentsMock.Setup(mock => mock.GetRawScore(_testStudent, course)).Returns(rawScore);
+      _ = _attendanceMock.Setup(mock => mock.GetAttendedClasses(_testStudent, course)).Returns(30);
 
       double actual = _calculator.CalculateCurrentScore(_testStudent, course);
 
@@ -49,8 +49,8 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
         MaxAttendanceScore = 10
       };
 
-      _ = _assignmentsMock.Setup(m => m.GetRawScore(_testStudent, course)).Returns(500.0);
-      _ = _attendanceMock.Setup(m => m.GetAttendedClasses(_testStudent, course)).Returns(attended);
+      _ = _assignmentsMock.Setup(mock => mock.GetRawScore(_testStudent, course)).Returns(500.0);
+      _ = _attendanceMock.Setup(mock => mock.GetAttendedClasses(_testStudent, course)).Returns(attended);
 
       double actual = _calculator.CalculateCurrentScore(_testStudent, course);
 

@@ -31,8 +31,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       };
 
       // Репозитории возвращают null т.к. данные отсутствуют
-      _ = _assignmentsMock.Setup(m => m.GetRawScore(_testStudent, course)).Returns((double?)null);
-      _ = _attendanceMock.Setup(m => m.GetAttendedClasses(_testStudent, course)).Returns((int?)null);
+      _ = _assignmentsMock.Setup(mock => mock.GetRawScore(_testStudent, course)).Returns((double?)null);
+      _ = _attendanceMock.Setup(mock => mock.GetAttendedClasses(_testStudent, course)).Returns((int?)null);
 
       double currentScore = _calculator.CalculateCurrentScore(_testStudent, course);
 
@@ -49,8 +49,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 20
       };
 
-      _ = _assignmentsMock.Setup(m => m.GetRawScore(_testStudent, course)).Returns(800.0);
-      _ = _attendanceMock.Setup(m => m.GetAttendedClasses(_testStudent, course)).Returns(40);
+      _ = _assignmentsMock.Setup(mock => mock.GetRawScore(_testStudent, course)).Returns(800.0);
+      _ = _attendanceMock.Setup(mock => mock.GetAttendedClasses(_testStudent, course)).Returns(40);
 
       double currentScore = _calculator.CalculateCurrentScore(_testStudent, course);
       string grade = _calculator.ConvertToGrade(100.0);
@@ -69,8 +69,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 15
       };
 
-      _ = _assignmentsMock.Setup(m => m.GetRawScore(_testStudent, course)).Returns(1200.0);
-      _ = _attendanceMock.Setup(m => m.GetAttendedClasses(_testStudent, course)).Returns(30);
+      _ = _assignmentsMock.Setup(mock => mock.GetRawScore(_testStudent, course)).Returns(1200.0);
+      _ = _attendanceMock.Setup(mock => mock.GetAttendedClasses(_testStudent, course)).Returns(30);
 
       double currentScore = _calculator.CalculateCurrentScore(_testStudent, course);
 
@@ -88,8 +88,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 20
       };
 
-      _ = _assignmentsMock.Setup(m => m.GetRawScore(_testStudent, course)).Returns(91.6666);
-      _ = _attendanceMock.Setup(m => m.GetAttendedClasses(_testStudent, course)).Returns(10);
+      _ = _assignmentsMock.Setup(mock => mock.GetRawScore(_testStudent, course)).Returns(91.6666);
+      _ = _attendanceMock.Setup(mock => mock.GetAttendedClasses(_testStudent, course)).Returns(10);
 
       double totalScore = _calculator.CalculateTotalScore(_testStudent, course, 20.0);
 

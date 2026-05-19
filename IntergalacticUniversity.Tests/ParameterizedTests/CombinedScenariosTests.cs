@@ -24,10 +24,10 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       int calculatedAttended = (int)(attendancePercent / 100.0 * course.TotalClasses);
 
       Mock<IAssignmentsRepository> mockAssign = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
-      _ = mockAssign.Setup(m => m.GetRawScore(student, course)).Returns(calculatedRawScore);
+      _ = mockAssign.Setup(mock => mock.GetRawScore(student, course)).Returns(calculatedRawScore);
 
       Mock<IAttendanceRepository> mockAttend = new Mock<IAttendanceRepository>(MockBehavior.Strict);
-      _ = mockAttend.Setup(m => m.GetAttendedClasses(student, course)).Returns(calculatedAttended);
+      _ = mockAttend.Setup(mock => mock.GetAttendedClasses(student, course)).Returns(calculatedAttended);
 
       RatingCalculator calculator = new RatingCalculator(mockAttend.Object, mockAssign.Object);
 

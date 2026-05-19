@@ -14,15 +14,15 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       Mock<IAttendanceRepository> mockAttend = new Mock<IAttendanceRepository>(MockBehavior.Strict);
       Mock<IAssignmentsRepository> mockAssign = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
 
-      _ = mockAssign.Setup(r => r.GetRawScore(student, course)).Returns(50.0);
-      _ = mockAttend.Setup(r => r.GetAttendedClasses(student, course)).Returns(5);
+      _ = mockAssign.Setup(repo => repo.GetRawScore(student, course)).Returns(50.0);
+      _ = mockAttend.Setup(repo => repo.GetAttendedClasses(student, course)).Returns(5);
 
       RatingCalculator calculator = new RatingCalculator(mockAttend.Object, mockAssign.Object);
 
       _ = calculator.CalculateCurrentScore(student, course);
 
-      mockAssign.Verify(r => r.GetRawScore(student, course), Times.Once);
-      mockAttend.Verify(r => r.GetAttendedClasses(student, course), Times.Once);
+      mockAssign.Verify(repo => repo.GetRawScore(student, course), Times.Once);
+      mockAttend.Verify(repo => repo.GetAttendedClasses(student, course), Times.Once);
     }
   }
 }
