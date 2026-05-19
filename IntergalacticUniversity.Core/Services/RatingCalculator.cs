@@ -1,5 +1,4 @@
-﻿using System;
-using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
 
 namespace IntergalacticUniversity.Core.Services {

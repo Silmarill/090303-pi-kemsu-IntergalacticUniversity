@@ -1,5 +1,4 @@
-﻿using System;
-using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
 
@@ -33,7 +32,7 @@ namespace IntergalacticUniversity {
       Console.Write("Введите максимально возможные баллы за все задания курса: ");
       double maxRaw = double.Parse(Console.ReadLine());
 
-      Console.Write($"Введите текщие баллы за задания (от 0 до {maxRaw}): ");
+      Console.Write($"Введите текущие баллы за задания (от 0 до {maxRaw}): ");
       double rawScore = double.Parse(Console.ReadLine());
 
       Console.Write("Общее количество пар по дисциплине: ");
