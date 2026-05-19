@@ -11,13 +11,10 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(86, "Отлично")]
     [TestCase(100, "Отлично")]
     public void ConvertToGrade_WithBoundaryValues_ReturnsCorrectGrade(double totalScore, string expectedGrade) {
-      // Arrange
       RatingCalculator calculator = new RatingCalculator(null, null);
 
-      // Act
       string result = calculator.ConvertToGrade(totalScore);
 
-      // Assert
       Assert.That(result, Is.EqualTo(expectedGrade));
     }
   }

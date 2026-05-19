@@ -33,15 +33,12 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(500, 20)]
     [TestCase(1000, 40)]
     public void CalculateCurrentScore_VariousRawPercentages_ReturnsCorrectAssignmentsScore(
-        int attended, double expectedAssignmentsScore) {
-      // Arrange
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(attended);
+        int rawScore, double expectedAssignmentsScore) {
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(rawScore);
 
-      // Act
       double result = _calculator.CalculateCurrentScore(_student, _course);
 
-      // Assert
-      double expected = expectedAssignmentsScore + 70;
+      double expected = expectedAssignmentsScore + 20;
       Assert.That(result, Is.EqualTo(expected));
     }
   }

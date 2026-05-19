@@ -6,30 +6,44 @@ using IntergalacticUniversity.Core.Services;
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
   public class Block1_3_CapLimitTests {
-    [Test]
-    public void CalculateCurrentScore_WhenSumExceedsMax_LimitsToMax() {
-      // Arrange
-      Student student = new Student { Id = 1 };
-      Course course = new Course {
+    private Student _student;
+    private Course _course;
+    private Mock<IAttendanceRepository> _mockAttendance;
+    private Mock<IAssignmentsRepository> _mockAssignments;
+    private RatingCalculator _calculator;
+
+    [SetUp]
+    public void SetUp() {
+      _student = new Student { Id = 1 };
+      _course = new Course {
         Type = ExamType.Credit,
         MaxRawAssignmentsScore = 1000,
         TotalClasses = 30,
         MaxAttendanceScore = 15
       };
 
-      Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(30);
+      _mockAttendance = new Mock<IAttendanceRepository>();
+      _mockAssignments = new Mock<IAssignmentsRepository>();
+      _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+    }
 
-      Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1200);
+    [TearDown]
+    public void TearDown() {
+      _student = null;
+      _course = null;
+      _mockAttendance = null;
+      _mockAssignments = null;
+      _calculator = null;
+    }
 
-      RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
+    [Test]
+    public void CalculateCurrentScore_WhenSumExceedsMax_LimitsToMax() {
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(30);
+      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1200);
 
-      // Act
-      double current = calculator.CalculateCurrentScore(student, course);
+      double result = _calculator.CalculateCurrentScore(_student, _course);
 
-      // Assert
-      Assert.That(current, Is.EqualTo(80.0));
+      Assert.That(result, Is.EqualTo(80.0));
     }
   }
 }

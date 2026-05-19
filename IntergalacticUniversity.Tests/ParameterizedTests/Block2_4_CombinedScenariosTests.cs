@@ -5,7 +5,7 @@ using IntergalacticUniversity.Core.Services;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
-  public class Block2_3_AttendancePortionTests {
+  public class Block2_4_CombinedScenariosTests {
     private Student _student;
     private Course _course;
     private Mock<IAttendanceRepository> _mockAttendance;
@@ -16,31 +16,33 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     public void SetUp() {
       _student = new Student { Id = 1 };
       _course = new Course {
-        Type = ExamType.Credit,
-        MaxRawAssignmentsScore = 1000,
-        TotalClasses = 30,
-        MaxAttendanceScore = 10
+        Type = ExamType.Exam,
+        MaxRawAssignmentsScore = 600,
+        TotalClasses = 20,
+        MaxAttendanceScore = 15
       };
 
       _mockAttendance = new Mock<IAttendanceRepository>();
 
       _mockAssignments = new Mock<IAssignmentsRepository>();
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1000);
-
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
-    [TestCase(30, 10)]
-    [TestCase(15, 5)]
-    [TestCase(0, 0)]
-    public void CalculateCurrentScore_VariousAttendancePercentages_ReturnsCorrectScore(
-        int attended, double expectedAttendanceScore) {
+    [TestCase(20, 30, 13.5)]
+    [TestCase(50, 100, 37.5)]
+    [TestCase(100, 20, 48)]
+    [TestCase(100, 100, 60)]
+    public void CalculateCurrentScore_CombinedScenarios_ReturnsCorrectScore(
+            double rawPercent, double attendancePercent, double expectedCurrent) {
+      double rawScore = (rawPercent / 100) * _course.MaxRawAssignmentsScore;
+      int attended = (int)((attendancePercent / 100) * _course.TotalClasses);
+
+      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
       _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, _course);
 
-      double expected = expectedAttendanceScore + 70;
-      Assert.That(result, Is.EqualTo(expected));
+      Assert.That(result, Is.EqualTo(expectedCurrent));
     }
   }
 }
