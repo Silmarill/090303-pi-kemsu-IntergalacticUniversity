@@ -19,10 +19,10 @@ namespace IntergalacticUniversity.Tests {
 
       // Мокируем репозитории, чтобы вернуть конкретные значения
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(20); // 50%
+      _ = mockAttendance.Setup(repo => repo.GetAttendedClasses(student, course)).Returns(20); // 50%
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(400);     // 50%
+      _ = mockAssignments.Setup(repo => repo.GetRawScore(student, course)).Returns(400);     // 50%
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
@@ -37,7 +37,7 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateCurrentScore_WhenNoData_ReturnsZero() {
       // Arrange
-      Student student = new Student { Id = 1 };
+      Student student = new Student { Id = 67 };
       Course course = new Course {
         Type = ExamType.Exam,
         MaxRawAssignmentsScore = 800,
@@ -46,10 +46,10 @@ namespace IntergalacticUniversity.Tests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns((int?)null);
+      _ = mockAttendance.Setup(repo => repo.GetAttendedClasses(student, course)).Returns((int?)null);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns((double?)null);
+      _ = mockAssignments.Setup(repo => repo.GetRawScore(student, course)).Returns((double?)null);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
@@ -63,7 +63,7 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateCurrentScore_WithMaxRawScoreAndFullAttendance_Returns60AndGradeExcellent() {
       // Arrange
-      Student student = new Student { Id = 1 };
+      Student student = new Student { Id = 67 };
       Course course = new Course {
         Type = ExamType.Exam,
         MaxRawAssignmentsScore = 800,
@@ -72,10 +72,10 @@ namespace IntergalacticUniversity.Tests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(40);
+      _ = mockAttendance.Setup(repo => repo.GetAttendedClasses(student, course)).Returns(40);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(800);
+      _ = mockAssignments.Setup(repo => repo.GetRawScore(student, course)).Returns(800);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
@@ -91,7 +91,7 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateCurrentScore_WhenScoresExceedMax_CapsAtMaxCurrent() {
       // Arrange
-      Student student = new Student { Id = 1 };
+      Student student = new Student { Id = 67 };
       Course course = new Course {
         Type = ExamType.Credit,
         MaxRawAssignmentsScore = 1000,
@@ -100,10 +100,10 @@ namespace IntergalacticUniversity.Tests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(40);
+      _ = mockAttendance.Setup(repo => repo.GetAttendedClasses(student, course)).Returns(40);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1200); // больше максимума
+      _ = mockAssignments.Setup(repo => repo.GetRawScore(student, course)).Returns(1200); // больше максимума
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
@@ -117,7 +117,7 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateTotalScore_WithCreditAndExamScore_Returns95() {
       // Arrange
-      Student student = new Student { Id = 1 };
+      Student student = new Student { Id = 67 };
       Course course = new Course {
         Type = ExamType.Credit,
         MaxRawAssignmentsScore = 1000,
@@ -127,10 +127,10 @@ namespace IntergalacticUniversity.Tests {
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
       // Настраиваем так, чтобы посещаемость дала 10 баллов
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(27);
+      _ = mockAttendance.Setup(repo => repo.GetAttendedClasses(student, course)).Returns(27);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000); // 65 баллов за задания
+      _ = mockAssignments.Setup(repo => repo.GetRawScore(student, course)).Returns(1000); // 65 баллов за задания
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
