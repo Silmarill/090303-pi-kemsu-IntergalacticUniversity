@@ -41,24 +41,30 @@ namespace IntergalacticUniversity.Tests {
     [TestCase(300, 12)]
     [TestCase(1000, 40)]
     public void CalculateCurrentScore_VariousRawScores_ReturnsCorrectAssignmentsPortion(double rawScore, double expectedAssignmentsScore) {
+      int fullAttendance = _examCourse.TotalClasses;
+      double maxAttendanceScore = _examCourse.MaxAttendanceScore;
+
       _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(30);
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(fullAttendance);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(expectedAssignmentsScore + 20));
+      Assert.That(result, Is.EqualTo(expectedAssignmentsScore + maxAttendanceScore));
     }
 
     [TestCase(20, 10)]
     [TestCase(10, 5)]
     [TestCase(0, 0)]
     public void CalculateCurrentScore_VariousAttendance_ReturnsCorrectAttendancePortion(int attended, double expectedAttendanceScore) {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1000);
+      double fullRawScore = _creditCourse.MaxRawAssignmentsScore;
+      double maxAssignments = 70.0;
+
+      _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(fullRawScore);
       _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
 
-      Assert.That(result, Is.EqualTo(70 + expectedAttendanceScore));
+      Assert.That(result, Is.EqualTo(maxAssignments + expectedAttendanceScore));
     }
   }
 }

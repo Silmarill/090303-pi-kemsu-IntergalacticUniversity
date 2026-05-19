@@ -29,8 +29,11 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateCurrentScore_CallsRepositoriesWithCorrectArguments() {
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(400);
+      int halfAttendance = _course.TotalClasses / 2;
+      double halfRawScore = _course.MaxRawAssignmentsScore / 2;
+
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(halfAttendance);
+      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(halfRawScore);
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
       _calculator.CalculateCurrentScore(_student, _course);
@@ -41,11 +44,15 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateTotalScore_CallsRepositoriesOnlyOnce() {
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(800);
+      int fullAttendance = _course.TotalClasses;
+      double fullRawScore = _course.MaxRawAssignmentsScore;
+      double examScore = 30.0;
+
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(fullAttendance);
+      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(fullRawScore);
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      _calculator.CalculateTotalScore(_student, _course, 30);
+      _calculator.CalculateTotalScore(_student, _course, examScore);
 
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);

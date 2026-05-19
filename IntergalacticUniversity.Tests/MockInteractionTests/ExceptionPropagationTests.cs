@@ -29,8 +29,10 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateCurrentScore_WhenRepositoryThrowsException_PropagatesException() {
+      int fullAttendance = _course.TotalClasses;
+
       _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Throws<TimeoutException>();
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
+      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(fullAttendance);
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
       Assert.Throws<TimeoutException>(() => _calculator.CalculateCurrentScore(_student, _course));
