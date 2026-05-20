@@ -1,0 +1,1062 @@
+name: Запуск Unit-тестов (v1.0)
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Номер Pull Request для проверки'
+        required: true
+        type: number
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TEST_RESULTS_DIR: TestResults
+  TEST_REPORT_MARKER: '<!-- autograding-test-results-v1 -->'
+  FAIL_IF_NO_TEST_PROJECTS: true
+
+jobs:
+  test-results:
+    name: Run tests and publish PR report
+
+    # Важно: workflow запускает код из PR. Поэтому pull_request_target ограничен PR из этого же репозитория.
+    # Для fork-PR безопаснее переводить workflow на pull_request и не использовать секреты.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.base.ref == 'main' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Установить номер PR
+        id: pr
+        run: |
+          if ("${{ github.event_name }}" -eq "pull_request_target") {
+            $pr = "${{ github.event.number }}"
+          } else {
+            $pr = "${{ github.event.inputs.pr_number }}"
+          }
+
+          "number=$pr" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "PR_NUMBER=$pr" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Получить код из Pull Request
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: refs/pull/${{ steps.pr.outputs.number }}/head
+          fetch-depth: 1
+          token: ${{ github.token }}
+
+      - name: Установить MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Найти проекты и тестовые проекты
+        id: detect
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $workspace = [System.IO.Path]::GetFullPath("${{ github.workspace }}")
+          $projectsJson = Join-Path $workspace "projects.json"
+          $testProjectsJson = Join-Path $workspace "test-projects.json"
+
+          function Test-IsIgnoredPath([string]$path) {
+            $full = [System.IO.Path]::GetFullPath($path)
+            $relative = [System.IO.Path]::GetRelativePath($workspace, $full)
+
+            $segments = @(
+              $relative -split '[\\/]' |
+                Where-Object { $_ -and $_.Trim() -ne '' }
+            )
+
+            if ($segments.Count -eq 0) {
+              return $true
+            }
+
+            $ignoredSegments = @(
+              ".git",
+              ".github",
+              "bin",
+              "obj",
+              "packages",
+              "TestResults",
+              "main-branch",
+              "main-branch-temp"
+            )
+
+            foreach ($segment in $segments) {
+              if ($ignoredSegments -contains $segment) {
+                return $true
+              }
+            }
+
+            return $false
+          }
+
+          function Get-XmlNodeText([xml]$xml, [string]$localName) {
+            $node = Select-Xml -Xml $xml -XPath "//*[local-name()='$localName']" |
+              Select-Object -First 1
+
+            if ($null -eq $node) {
+              return ""
+            }
+
+            $text = $node.Node.InnerText
+            if ($null -eq $text) {
+              return ""
+            }
+
+            return $text.Trim()
+          }
+
+          function Get-PackageNames([string]$projectPath) {
+            $projectDir = Split-Path $projectPath
+            $packages = New-Object System.Collections.Generic.List[string]
+
+            try {
+              [xml]$projectXml = Get-Content $projectPath -Raw
+              $packageReferenceNodes = Select-Xml -Xml $projectXml -XPath "//*[local-name()='PackageReference']"
+              foreach ($node in $packageReferenceNodes) {
+                $include = $node.Node.GetAttribute("Include")
+                if ([string]::IsNullOrWhiteSpace($include)) {
+                  $include = $node.Node.GetAttribute("Update")
+                }
+                if (-not [string]::IsNullOrWhiteSpace($include)) {
+                  $packages.Add($include.Trim())
+                }
+              }
+            } catch {
+              Write-Host "Не удалось прочитать PackageReference из ${projectPath}: $($_.Exception.Message)"
+            }
+
+            $packagesConfig = Join-Path $projectDir "packages.config"
+            if (Test-Path $packagesConfig) {
+              try {
+                [xml]$packagesXml = Get-Content $packagesConfig -Raw
+                $packageNodes = Select-Xml -Xml $packagesXml -XPath "//*[local-name()='package']"
+                foreach ($node in $packageNodes) {
+                  $id = $node.Node.GetAttribute("id")
+                  if (-not [string]::IsNullOrWhiteSpace($id)) {
+                    $packages.Add($id.Trim())
+                  }
+                }
+              } catch {
+                Write-Host "Не удалось прочитать packages.config для ${projectPath}: $($_.Exception.Message)"
+              }
+            }
+
+            return @($packages | Sort-Object -Unique)
+          }
+
+          function Get-TargetFrameworks([xml]$projectXml) {
+            $frameworks = New-Object System.Collections.Generic.List[string]
+
+            $targetFramework = Get-XmlNodeText $projectXml "TargetFramework"
+            if (-not [string]::IsNullOrWhiteSpace($targetFramework)) {
+              $frameworks.Add($targetFramework)
+            }
+
+            $targetFrameworks = Get-XmlNodeText $projectXml "TargetFrameworks"
+            if (-not [string]::IsNullOrWhiteSpace($targetFrameworks)) {
+              foreach ($tfm in ($targetFrameworks -split ';')) {
+                if (-not [string]::IsNullOrWhiteSpace($tfm)) {
+                  $frameworks.Add($tfm.Trim())
+                }
+              }
+            }
+
+            $targetFrameworkVersion = Get-XmlNodeText $projectXml "TargetFrameworkVersion"
+            if (-not [string]::IsNullOrWhiteSpace($targetFrameworkVersion)) {
+              $frameworks.Add($targetFrameworkVersion)
+            }
+
+            return @($frameworks | Sort-Object -Unique)
+          }
+
+          function Get-SdkVersionFromTfm([string]$tfm) {
+            if ([string]::IsNullOrWhiteSpace($tfm)) {
+              return $null
+            }
+
+            $value = $tfm.Trim().ToLowerInvariant()
+
+            if ($value -match '^net(\d+)\.(\d+)$') {
+              $major = [int]$Matches[1]
+              $minor = [int]$Matches[2]
+              if ($major -ge 5) {
+                return "$major.$minor.x"
+              }
+            }
+
+            if ($value -match '^netcoreapp(\d+)\.(\d+)$') {
+              return "$($Matches[1]).$($Matches[2]).x"
+            }
+
+            if ($value -match '^netstandard') {
+              return "8.0.x"
+            }
+
+            return $null
+          }
+
+          $projectFiles = Get-ChildItem -Path $workspace -Filter *.csproj -Recurse -File |
+            Where-Object { -not (Test-IsIgnoredPath $_.FullName) } |
+            Sort-Object FullName
+
+          if ($projectFiles.Count -eq 0) {
+            Write-Host "❌ В PR не найдено ни одного .csproj."
+            @() | ConvertTo-Json -Depth 10 | Set-Content -Path $projectsJson -Encoding utf8
+            @() | ConvertTo-Json -Depth 10 | Set-Content -Path $testProjectsJson -Encoding utf8
+            "has_test_projects=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "dotnet_versions=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 0
+          }
+
+          $allProjects = New-Object System.Collections.Generic.List[object]
+          $testProjects = New-Object System.Collections.Generic.List[object]
+          $sdkVersions = New-Object System.Collections.Generic.HashSet[string]
+
+          $globalJson = Join-Path $workspace "global.json"
+          if (Test-Path $globalJson) {
+            try {
+              $globalJsonData = Get-Content $globalJson -Raw | ConvertFrom-Json
+              if ($globalJsonData.sdk.version) {
+                [void]$sdkVersions.Add([string]$globalJsonData.sdk.version)
+              }
+            } catch {
+              Write-Host "global.json найден, но не прочитан: $($_.Exception.Message)"
+            }
+          }
+
+          $testPackageHints = @(
+            "Microsoft.NET.Test.Sdk",
+            "NUnit",
+            "NUnit3TestAdapter",
+            "xunit",
+            "xunit.runner.visualstudio",
+            "MSTest.TestFramework",
+            "MSTest.TestAdapter"
+          )
+
+          foreach ($project in $projectFiles) {
+            $projectPath = [System.IO.Path]::GetFullPath($project.FullName)
+            $projectDir = Split-Path $projectPath
+            $relativePath = [System.IO.Path]::GetRelativePath($workspace, $projectPath)
+            $relativeDir = [System.IO.Path]::GetRelativePath($workspace, $projectDir)
+
+            $content = Get-Content $projectPath -Raw
+            [xml]$projectXml = $content
+
+            $isSdkStyle = $false
+            if ($content -match '<Project\s+Sdk=' -or $content -match '<Project[^>]+Sdk=') {
+              $isSdkStyle = $true
+            }
+
+            $targetFrameworks = @(Get-TargetFrameworks $projectXml)
+            $packages = @(Get-PackageNames $projectPath)
+            $hasPackagesConfig = Test-Path (Join-Path $projectDir "packages.config")
+
+            $isTestProjectText = Get-XmlNodeText $projectXml "IsTestProject"
+            $isTestProjectProperty = $isTestProjectText -match '^(?i:true)$'
+
+            $hasTestPackage = $false
+            foreach ($package in $packages) {
+              foreach ($hint in $testPackageHints) {
+                if ($package.Equals($hint, [System.StringComparison]::OrdinalIgnoreCase)) {
+                  $hasTestPackage = $true
+                }
+              }
+            }
+
+            $looksLikeTestProjectByName = $project.BaseName -match '(?i)(test|tests|spec|specs)'
+            $isTestProject = $isTestProjectProperty -or $hasTestPackage -or ($looksLikeTestProjectByName -and ($packages.Count -gt 0))
+
+            if ($isSdkStyle) {
+              foreach ($tfm in $targetFrameworks) {
+                $sdkVersion = Get-SdkVersionFromTfm $tfm
+                if ($sdkVersion) {
+                  [void]$sdkVersions.Add($sdkVersion)
+                }
+              }
+
+              if ($targetFrameworks.Count -eq 0) {
+                [void]$sdkVersions.Add("8.0.x")
+              }
+            }
+
+            $detectionReasons = New-Object System.Collections.Generic.List[string]
+            if ($isTestProjectProperty) {
+              $detectionReasons.Add("IsTestProject")
+            }
+            if ($hasTestPackage) {
+              $detectionReasons.Add("test-package")
+            }
+            if ($looksLikeTestProjectByName) {
+              $detectionReasons.Add("project-name")
+            }
+
+            $metadata = [pscustomobject]@{
+              Path = $projectPath
+              RelativePath = $relativePath
+              Directory = $projectDir
+              RelativeDirectory = $relativeDir
+              Name = $project.BaseName
+              IsSdkStyle = $isSdkStyle
+              TargetFrameworks = $targetFrameworks
+              Packages = $packages
+              HasPackagesConfig = $hasPackagesConfig
+              IsTestProject = $isTestProject
+              DetectionReason = @($detectionReasons)
+            }
+
+            $allProjects.Add($metadata)
+            if ($isTestProject) {
+              $testProjects.Add($metadata)
+            }
+          }
+
+          $allProjects | ConvertTo-Json -Depth 20 | Set-Content -Path $projectsJson -Encoding utf8
+          $testProjects | ConvertTo-Json -Depth 20 | Set-Content -Path $testProjectsJson -Encoding utf8
+
+          if ($testProjects.Count -gt 0) {
+            "has_test_projects=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            "has_test_projects=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+
+          if ($sdkVersions.Count -eq 0 -and ($allProjects | Where-Object { $_.IsSdkStyle }).Count -gt 0) {
+            [void]$sdkVersions.Add("8.0.x")
+          }
+
+          $versions = @($sdkVersions | Sort-Object)
+
+          "dotnet_versions<<EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          foreach ($version in $versions) {
+            $version | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+          "EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          $hasDotnetVersions = if ($versions.Count -gt 0) { "true" } else { "false" }
+          "has_dotnet_versions=$hasDotnetVersions" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "Найдено проектов: $($allProjects.Count)"
+          Write-Host "Найдено тестовых проектов: $($testProjects.Count)"
+          Write-Host "SDK для установки:"
+          foreach ($version in $versions) {
+            Write-Host "  - $version"
+          }
+
+          Write-Host ""
+          Write-Host "Тестовые проекты:"
+          foreach ($project in $testProjects) {
+            Write-Host "  - $($project.RelativePath) [$($project.TargetFrameworks -join ', ')]"
+          }
+        shell: pwsh
+
+      - name: Установить .NET SDK по тестовым проектам
+        if: steps.detect.outputs.has_dotnet_versions == 'true'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ steps.detect.outputs.dotnet_versions }}
+
+      - name: Показать версии .NET и MSBuild
+        run: |
+          dotnet --info
+          msbuild -version
+        shell: pwsh
+
+      - name: Восстановить NuGet packages.config
+        run: |
+          $ErrorActionPreference = "Continue"
+          $workspace = [System.IO.Path]::GetFullPath("${{ github.workspace }}")
+          $packagesDir = Join-Path $workspace "packages"
+
+          $projects = @(Get-Content (Join-Path $workspace "projects.json") -Raw | ConvertFrom-Json)
+          $projectsWithPackagesConfig = @($projects | Where-Object { $_.HasPackagesConfig })
+
+          if ($projectsWithPackagesConfig.Count -eq 0) {
+            Write-Host "packages.config не найден."
+            exit 0
+          }
+
+          foreach ($project in $projectsWithPackagesConfig) {
+            $packagesConfig = Join-Path $project.Directory "packages.config"
+            if (Test-Path $packagesConfig) {
+              Write-Host "nuget restore: $packagesConfig"
+              nuget restore "$packagesConfig" -PackagesDirectory "$packagesDir" -NonInteractive
+              if ($LASTEXITCODE -ne 0) {
+                Write-Host "⚠️ nuget restore завершился с ошибкой для $($project.RelativePath). Тестовый запуск покажет итоговую проблему."
+              }
+            }
+          }
+
+          exit 0
+        shell: pwsh
+
+      - name: Восстановить SDK-style проекты
+        if: steps.detect.outputs.has_dotnet_versions == 'true'
+        run: |
+          $ErrorActionPreference = "Continue"
+          $workspace = [System.IO.Path]::GetFullPath("${{ github.workspace }}")
+          $projects = @(Get-Content (Join-Path $workspace "projects.json") -Raw | ConvertFrom-Json)
+          $sdkProjects = @($projects | Where-Object { $_.IsSdkStyle })
+
+          if ($sdkProjects.Count -eq 0) {
+            Write-Host "SDK-style проекты не найдены."
+            exit 0
+          }
+
+          foreach ($project in $sdkProjects) {
+            Write-Host "dotnet restore: $($project.RelativePath)"
+            dotnet restore "$($project.Path)"
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "⚠️ dotnet restore завершился с ошибкой для $($project.RelativePath). Тестовый запуск покажет итоговую проблему."
+            }
+          }
+
+          exit 0
+        shell: pwsh
+
+      - name: Запустить тесты и собрать TRX
+        id: run_tests
+        run: |
+          $ErrorActionPreference = "Continue"
+
+          $workspace = [System.IO.Path]::GetFullPath("${{ github.workspace }}")
+          $resultsDir = Join-Path $workspace "${{ env.TEST_RESULTS_DIR }}"
+          New-Item -ItemType Directory -Force -Path $resultsDir | Out-Null
+
+          $runLog = Join-Path $resultsDir "test-run.log"
+          "" | Set-Content -Path $runLog -Encoding utf8
+
+          $statusPath = Join-Path $resultsDir "test-status.json"
+          $manifestPath = Join-Path $resultsDir "test-run-manifest.json"
+
+          $testProjects = @(Get-Content (Join-Path $workspace "test-projects.json") -Raw | ConvertFrom-Json)
+
+          $manifest = New-Object System.Collections.Generic.List[object]
+          $anyFailed = $false
+          $noTests = $false
+
+          function Add-Log([string]$message) {
+            Write-Host $message
+            Add-Content -Path $runLog -Value $message -Encoding utf8
+          }
+
+          function Get-SafeName([string]$value) {
+            $safe = $value -replace '[\\/:*?"<>| ]+', '_'
+            $safe = $safe -replace '_+', '_'
+            return $safe.Trim('_')
+          }
+
+          function Get-LegacyOutputAssembly([object]$project) {
+            $projectDir = [string]$project.Directory
+            $projectPath = [string]$project.Path
+            $content = Get-Content $projectPath -Raw
+
+            $assemblyName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
+            if ($content -match '<AssemblyName>\s*([^<]+)\s*</AssemblyName>') {
+              $assemblyName = $Matches[1].Trim()
+            }
+
+            $outputType = "Library"
+            if ($content -match '<OutputType>\s*([^<]+)\s*</OutputType>') {
+              $outputType = $Matches[1].Trim()
+            }
+
+            $extension = ".dll"
+            if ($outputType -match '^(?i:Exe|WinExe)$') {
+              $extension = ".exe"
+            }
+
+            $configuration = "Debug"
+            $outputPath = "bin\Debug\"
+
+            $configPattern = "(?s)<PropertyGroup[^>]*Condition=""[^""]*\$\(Configuration\)\|\$\(Platform\)'\s*==\s*'$configuration\|[^']+'[^""]*""[^>]*>.*?<OutputPath>\s*([^<]+)\s*</OutputPath>.*?</PropertyGroup>"
+            $match = [regex]::Match($content, $configPattern)
+            if ($match.Success) {
+              $outputPath = $match.Groups[1].Value.Trim()
+            }
+
+            $candidate = Join-Path (Join-Path $projectDir $outputPath) ($assemblyName + $extension)
+            if (Test-Path $candidate) {
+              return [System.IO.Path]::GetFullPath($candidate)
+            }
+
+            $fallback = Get-ChildItem -Path $projectDir -Recurse -File -Include "$assemblyName.dll", "$assemblyName.exe" |
+              Where-Object { $_.FullName -match '[\\/]bin[\\/]Debug[\\/]' } |
+              Sort-Object FullName |
+              Select-Object -First 1
+
+            if ($fallback) {
+              return $fallback.FullName
+            }
+
+            return $null
+          }
+
+          if ($testProjects.Count -eq 0) {
+            Add-Log "❌ Тестовые проекты не найдены."
+            $noTests = $true
+            $anyFailed = $true
+          }
+
+          foreach ($project in $testProjects) {
+            $safeName = Get-SafeName $project.RelativePath
+            $trxName = "$safeName.trx"
+            $projectFailed = $false
+            $mode = ""
+
+            Add-Log ""
+            Add-Log "============================================================"
+            Add-Log "TEST PROJECT: $($project.RelativePath)"
+            Add-Log "SDK-style: $($project.IsSdkStyle), TargetFrameworks: $($project.TargetFrameworks -join ', ')"
+            Add-Log "============================================================"
+
+            if ($project.IsSdkStyle) {
+              $mode = "dotnet test"
+              Add-Log "dotnet test: $($project.RelativePath)"
+
+              $output = & dotnet test "$($project.Path)" `
+                --configuration Debug `
+                --logger "trx;LogFileName=$trxName" `
+                --results-directory "$resultsDir" `
+                --verbosity normal 2>&1
+
+              $exitCode = $LASTEXITCODE
+              $output | Tee-Object -FilePath $runLog -Append
+
+              if ($exitCode -ne 0) {
+                $projectFailed = $true
+                $anyFailed = $true
+                Add-Log "❌ dotnet test завершился с кодом $exitCode для $($project.RelativePath)"
+              } else {
+                Add-Log "✅ dotnet test успешен: $($project.RelativePath)"
+              }
+            } else {
+              $mode = "msbuild + vstest.console"
+              Add-Log "msbuild: $($project.RelativePath)"
+
+              $buildOutput = & msbuild "$($project.Path)" `
+                /p:Configuration=Debug `
+                /p:Platform="Any CPU" `
+                /p:RestorePackages=false `
+                /v:minimal 2>&1
+
+              $buildExitCode = $LASTEXITCODE
+              $buildOutput | Tee-Object -FilePath $runLog -Append
+
+              if ($buildExitCode -ne 0) {
+                $projectFailed = $true
+                $anyFailed = $true
+                Add-Log "❌ msbuild завершился с кодом $buildExitCode для $($project.RelativePath)"
+              } else {
+                $assembly = Get-LegacyOutputAssembly $project
+                if (-not $assembly) {
+                  $projectFailed = $true
+                  $anyFailed = $true
+                  Add-Log "❌ Не удалось найти тестовую сборку после сборки $($project.RelativePath)"
+                } else {
+                  $adapterPath = Join-Path $workspace "packages"
+                  $vstestArgs = @(
+                    $assembly,
+                    "/Logger:trx;LogFileName=$trxName",
+                    "/ResultsDirectory:$resultsDir"
+                  )
+
+                  if (Test-Path $adapterPath) {
+                    $vstestArgs += "/TestAdapterPath:$adapterPath"
+                  }
+
+                  $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+                  $vstestExe = "vstest.console.exe"
+
+                  if (Test-Path $vswhere) {
+                    $foundVstest = & $vswhere -latest -products * -requires Microsoft.VisualStudio.PackageGroup.TestTools.Core -find "Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe" |
+                      Select-Object -First 1
+
+                    if (-not [string]::IsNullOrWhiteSpace($foundVstest)) {
+                      $vstestExe = $foundVstest
+                    }
+                  }
+
+                  Add-Log "vstest.console: $assembly"
+                  $testOutput = & "$vstestExe" @vstestArgs 2>&1
+                  $testExitCode = $LASTEXITCODE
+                  $testOutput | Tee-Object -FilePath $runLog -Append
+
+                  if ($testExitCode -ne 0) {
+                    $projectFailed = $true
+                    $anyFailed = $true
+                    Add-Log "❌ vstest.console завершился с кодом $testExitCode для $($project.RelativePath)"
+                  } else {
+                    Add-Log "✅ vstest.console успешен: $($project.RelativePath)"
+                  }
+                }
+              }
+            }
+
+            $trxPath = Join-Path $resultsDir $trxName
+            if (-not (Test-Path $trxPath)) {
+              $foundTrx = Get-ChildItem -Path $resultsDir -Recurse -Filter *.trx |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 1
+
+              if ($foundTrx) {
+                $trxPath = $foundTrx.FullName
+              } else {
+                $trxPath = ""
+              }
+            }
+
+            $manifest.Add([pscustomobject]@{
+              Project = $project.RelativePath
+              ProjectPath = $project.Path
+              ProjectDirectory = $project.Directory
+              RelativeDirectory = $project.RelativeDirectory
+              IsSdkStyle = $project.IsSdkStyle
+              Mode = $mode
+              TrxPath = $trxPath
+              FailedToRun = $projectFailed
+            })
+          }
+
+          $manifest | ConvertTo-Json -Depth 20 | Set-Content -Path $manifestPath -Encoding utf8
+
+          [pscustomobject]@{
+            AnyFailed = $anyFailed
+            NoTests = $noTests
+            TestProjectCount = $testProjects.Count
+          } | ConvertTo-Json -Depth 10 | Set-Content -Path $statusPath -Encoding utf8
+
+          "any_failed=$anyFailed" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "no_tests=$noTests" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          exit 0
+        shell: pwsh
+
+      - name: Сформировать Markdown-отчёт
+        run: |
+          $ErrorActionPreference = "Continue"
+
+          $workspace = [System.IO.Path]::GetFullPath("${{ github.workspace }}")
+          $resultsDir = Join-Path $workspace "${{ env.TEST_RESULTS_DIR }}"
+          $manifestPath = Join-Path $resultsDir "test-run-manifest.json"
+          $statusPath = Join-Path $resultsDir "test-status.json"
+          $reportPath = Join-Path $resultsDir "test-report.md"
+          $summaryJsonPath = Join-Path $resultsDir "test-summary.json"
+
+          $manifest = @()
+          if (Test-Path $manifestPath) {
+            $manifest = @(Get-Content $manifestPath -Raw | ConvertFrom-Json)
+          }
+
+          $status = [pscustomobject]@{
+            AnyFailed = $true
+            NoTests = $true
+            TestProjectCount = 0
+          }
+
+          if (Test-Path $statusPath) {
+            $status = Get-Content $statusPath -Raw | ConvertFrom-Json
+          }
+
+          function Escape-MarkdownTable([string]$value) {
+            if ($null -eq $value) {
+              return ""
+            }
+
+            $result = [string]$value
+            $result = $result -replace '\|', '\|'
+            $result = $result -replace "`r?`n", "<br>"
+            return $result
+          }
+
+          function Shorten([string]$value, [int]$max = 220) {
+            if ($null -eq $value) {
+              return ""
+            }
+
+            $singleLine = ([string]$value) -replace "`r?`n", " "
+            $singleLine = $singleLine.Trim()
+            if ($singleLine.Length -le $max) {
+              return $singleLine
+            }
+
+            return $singleLine.Substring(0, $max - 1) + "…"
+          }
+
+          function Get-ClassSourceMap([string]$projectDir, [string]$relativeProjectDir) {
+            $map = @{}
+
+            if (-not (Test-Path $projectDir)) {
+              return $map
+            }
+
+            $sourceFiles = Get-ChildItem -Path $projectDir -Filter *.cs -Recurse -File |
+              Where-Object { $_.FullName -notmatch '[\\/]bin[\\/]|[\\/]obj[\\/]' }
+
+            foreach ($file in $sourceFiles) {
+              $relativeFile = [System.IO.Path]::GetRelativePath($projectDir, $file.FullName)
+              $folder = Split-Path $relativeFile -Parent
+              if ([string]::IsNullOrWhiteSpace($folder)) {
+                $folder = "."
+              }
+
+              $content = Get-Content $file.FullName -Raw -ErrorAction SilentlyContinue
+              if ($null -eq $content) {
+                continue
+              }
+
+              $matches = [regex]::Matches($content, '\b(class|record|struct)\s+([A-Za-z_][A-Za-z0-9_]*)')
+              foreach ($match in $matches) {
+                $className = $match.Groups[2].Value
+                if (-not $map.ContainsKey($className)) {
+                  $map[$className] = [pscustomobject]@{
+                    File = $relativeFile
+                    Folder = $folder
+                    RepositoryFolder = if ($relativeProjectDir -eq ".") { $folder } else { Join-Path $relativeProjectDir $folder }
+                  }
+                }
+              }
+            }
+
+            return $map
+          }
+
+          function Get-TrxRows([object]$item) {
+            $rows = New-Object System.Collections.Generic.List[object]
+
+            if ([string]::IsNullOrWhiteSpace($item.TrxPath) -or -not (Test-Path $item.TrxPath)) {
+              return @($rows)
+            }
+
+            try {
+              [xml]$trx = Get-Content $item.TrxPath -Raw
+            } catch {
+              return @($rows)
+            }
+
+            $unitTests = @{}
+            $unitTestNodes = Select-Xml -Xml $trx -XPath "//*[local-name()='UnitTest']"
+            foreach ($unitTestNode in $unitTestNodes) {
+              $unitTest = $unitTestNode.Node
+              $id = $unitTest.GetAttribute("id")
+              $testMethod = Select-Xml -Xml $unitTestNode.Node -XPath ".//*[local-name()='TestMethod']" | Select-Object -First 1
+
+              $className = ""
+              $methodName = ""
+              if ($testMethod) {
+                $className = $testMethod.Node.GetAttribute("className")
+                $methodName = $testMethod.Node.GetAttribute("name")
+              }
+
+              if ([string]::IsNullOrWhiteSpace($methodName)) {
+                $methodName = $unitTest.GetAttribute("name")
+              }
+
+              $unitTests[$id] = [pscustomobject]@{
+                ClassName = $className
+                MethodName = $methodName
+                TestName = $unitTest.GetAttribute("name")
+              }
+            }
+
+            $classMap = Get-ClassSourceMap ([string]$item.ProjectDirectory) ([string]$item.RelativeDirectory)
+
+            $resultNodes = Select-Xml -Xml $trx -XPath "//*[local-name()='UnitTestResult']"
+            foreach ($resultNode in $resultNodes) {
+              $result = $resultNode.Node
+              $testId = $result.GetAttribute("testId")
+              $testName = $result.GetAttribute("testName")
+              $outcome = $result.GetAttribute("outcome")
+              $durationText = $result.GetAttribute("duration")
+
+              $className = ""
+              $methodName = $testName
+
+              if ($unitTests.ContainsKey($testId)) {
+                $className = $unitTests[$testId].ClassName
+                $methodName = $unitTests[$testId].MethodName
+                if ([string]::IsNullOrWhiteSpace($methodName)) {
+                  $methodName = $unitTests[$testId].TestName
+                }
+              }
+
+              $simpleClass = $className
+              if ($simpleClass -match '\.([^.]+)$') {
+                $simpleClass = $Matches[1]
+              }
+
+              $group = ""
+              $sourceFile = ""
+
+              if ($classMap.ContainsKey($simpleClass)) {
+                $group = $classMap[$simpleClass].Folder
+                $sourceFile = $classMap[$simpleClass].File
+              } else {
+                $group = if ([string]::IsNullOrWhiteSpace($className)) { "." } else { $className }
+              }
+
+              $message = ""
+              $stackTrace = ""
+
+              $errorInfo = Select-Xml -Xml $resultNode.Node -XPath ".//*[local-name()='ErrorInfo']" | Select-Object -First 1
+              if ($errorInfo) {
+                $messageNode = Select-Xml -Xml $errorInfo.Node -XPath ".//*[local-name()='Message']" | Select-Object -First 1
+                $stackTraceNode = Select-Xml -Xml $errorInfo.Node -XPath ".//*[local-name()='StackTrace']" | Select-Object -First 1
+
+                if ($messageNode) {
+                  $message = $messageNode.Node.InnerText
+                }
+
+                if ($stackTraceNode) {
+                  $stackTrace = $stackTraceNode.Node.InnerText
+                }
+              }
+
+              $rows.Add([pscustomobject]@{
+                Project = $item.Project
+                Group = $group
+                SourceFile = $sourceFile
+                ClassName = $className
+                MethodName = $methodName
+                TestName = $testName
+                Outcome = $outcome
+                Duration = $durationText
+                Message = $message
+                StackTrace = $stackTrace
+              })
+            }
+
+            return @($rows)
+          }
+
+          $allRows = New-Object System.Collections.Generic.List[object]
+
+          foreach ($item in $manifest) {
+            $rows = @(Get-TrxRows $item)
+            foreach ($row in $rows) {
+              $allRows.Add($row)
+            }
+          }
+
+          $total = $allRows.Count
+          $passed = @($allRows | Where-Object { $_.Outcome -eq "Passed" }).Count
+          $failed = @($allRows | Where-Object { $_.Outcome -eq "Failed" }).Count
+          $skipped = @($allRows | Where-Object { $_.Outcome -match "NotExecuted|Skipped|Inconclusive" }).Count
+          $other = $total - $passed - $failed - $skipped
+
+          if ($status.NoTests -eq $true -or $total -eq 0) {
+            $status.AnyFailed = $true
+          }
+
+          if ($failed -gt 0) {
+            $status.AnyFailed = $true
+          }
+
+          $projectGroups = @(
+            $allRows |
+              Group-Object Project |
+              ForEach-Object {
+                [pscustomobject]@{
+                  Project = $_.Name
+                  Total = $_.Count
+                  Passed = @($_.Group | Where-Object { $_.Outcome -eq "Passed" }).Count
+                  Failed = @($_.Group | Where-Object { $_.Outcome -eq "Failed" }).Count
+                  Skipped = @($_.Group | Where-Object { $_.Outcome -match "NotExecuted|Skipped|Inconclusive" }).Count
+                }
+              } |
+              Sort-Object Project
+          )
+
+          $failedRows = @($allRows | Where-Object { $_.Outcome -eq "Failed" } | Sort-Object Project, Group, ClassName, MethodName)
+          $allRowsSorted = @($allRows | Sort-Object Project, Group, ClassName, MethodName)
+
+          $lines = New-Object System.Collections.Generic.List[string]
+          $lines.Add("${{ env.TEST_REPORT_MARKER }}")
+          $lines.Add("## 🧪 Результаты автотестов")
+          $lines.Add("")
+          $lines.Add("PR: #${{ steps.pr.outputs.number }}")
+          $lines.Add("")
+          $lines.Add("| Статус | Всего | ✅ Успешно | ❌ Упало | ⚠️ Пропущено | Другое |")
+          $lines.Add("|---|---:|---:|---:|---:|---:|")
+
+          $statusText = if ($status.AnyFailed -eq $true) { "❌ Есть проблемы" } else { "✅ Все тесты прошли" }
+          $lines.Add("| $statusText | $total | $passed | $failed | $skipped | $other |")
+          $lines.Add("")
+
+          if ($status.NoTests -eq $true -or $manifest.Count -eq 0) {
+            $lines.Add("> ❌ Тестовые проекты не найдены. Workflow ищет проекты по `<IsTestProject>true</IsTestProject>`, `Microsoft.NET.Test.Sdk`, NUnit, xUnit или MSTest-пакетам.")
+            $lines.Add("")
+          }
+
+          $failedToRun = @($manifest | Where-Object { $_.FailedToRun -eq $true })
+          if ($failedToRun.Count -gt 0) {
+            $lines.Add("### Проекты, которые не удалось запустить")
+            $lines.Add("")
+            $lines.Add("| Проект | Режим | TRX |")
+            $lines.Add("|---|---|---|")
+            foreach ($item in $failedToRun) {
+              $trxCell = if ([string]::IsNullOrWhiteSpace($item.TrxPath)) { "нет" } else { "есть" }
+              $lines.Add("| $(Escape-MarkdownTable $item.Project) | $(Escape-MarkdownTable $item.Mode) | $trxCell |")
+            }
+            $lines.Add("")
+          }
+
+          if ($projectGroups.Count -gt 0) {
+            $lines.Add("### Сводка по тестовым проектам")
+            $lines.Add("")
+            $lines.Add("| Проект | Всего | ✅ | ❌ | ⚠️ |")
+            $lines.Add("|---|---:|---:|---:|---:|")
+            foreach ($group in $projectGroups) {
+              $lines.Add("| $(Escape-MarkdownTable $group.Project) | $($group.Total) | $($group.Passed) | $($group.Failed) | $($group.Skipped) |")
+            }
+            $lines.Add("")
+          }
+
+          if ($failedRows.Count -gt 0) {
+            $lines.Add("### Упавшие тесты")
+            $lines.Add("")
+            $lines.Add("| Проект | Папка/группа | Класс | Метод | Сообщение |")
+            $lines.Add("|---|---|---|---|---|")
+            foreach ($row in ($failedRows | Select-Object -First 30)) {
+              $lines.Add("| $(Escape-MarkdownTable $row.Project) | $(Escape-MarkdownTable $row.Group) | $(Escape-MarkdownTable $row.ClassName) | $(Escape-MarkdownTable $row.MethodName) | $(Escape-MarkdownTable (Shorten $row.Message 260)) |")
+            }
+
+            if ($failedRows.Count -gt 30) {
+              $lines.Add("")
+              $lines.Add("_Показаны первые 30 упавших тестов. Полный `.trx` лежит в артефактах workflow._")
+            }
+            $lines.Add("")
+          }
+
+          if ($allRowsSorted.Count -gt 0) {
+            $lines.Add("<details>")
+            $lines.Add("<summary>Все найденные тесты ($($allRowsSorted.Count))</summary>")
+            $lines.Add("")
+            $lines.Add("| Результат | Проект | Папка/группа | Класс | Метод | Длительность |")
+            $lines.Add("|---|---|---|---|---|---:|")
+
+            foreach ($row in ($allRowsSorted | Select-Object -First 200)) {
+              $icon = switch ($row.Outcome) {
+                "Passed" { "✅" }
+                "Failed" { "❌" }
+                default { "⚠️" }
+              }
+
+              $lines.Add("| $icon $($row.Outcome) | $(Escape-MarkdownTable $row.Project) | $(Escape-MarkdownTable $row.Group) | $(Escape-MarkdownTable $row.ClassName) | $(Escape-MarkdownTable $row.MethodName) | $(Escape-MarkdownTable $row.Duration) |")
+            }
+
+            if ($allRowsSorted.Count -gt 200) {
+              $lines.Add("| … | … | … | … | … | … |")
+            }
+
+            $lines.Add("")
+            $lines.Add("</details>")
+            $lines.Add("")
+          }
+
+          $lines.Add("_Отчёт сформирован автоматически из `.trx` результатов. Группировка по папке определяется по `.cs` файлу с тестовым классом, если его удалось найти._")
+
+          $lines -join "`n" | Set-Content -Path $reportPath -Encoding utf8
+
+          [pscustomobject]@{
+            Total = $total
+            Passed = $passed
+            Failed = $failed
+            Skipped = $skipped
+            Other = $other
+            AnyFailed = $status.AnyFailed
+            NoTests = $status.NoTests
+            TestProjectCount = $status.TestProjectCount
+          } | ConvertTo-Json -Depth 10 | Set-Content -Path $summaryJsonPath -Encoding utf8
+
+          "any_failed=$($status.AnyFailed)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "no_tests=$($status.NoTests)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Опубликовать результаты тестов в Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = Number('${{ steps.pr.outputs.number }}');
+            const marker = process.env.TEST_REPORT_MARKER;
+            const reportPath = `${process.env.GITHUB_WORKSPACE}\\${process.env.TEST_RESULTS_DIR}\\test-report.md`;
+
+            let body = fs.readFileSync(reportPath, 'utf8');
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100
+            });
+
+            const existing = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body &&
+              comment.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body
+              });
+            }
+
+      - name: Загрузить артефакты тестового запуска
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-pr-${{ steps.pr.outputs.number }}
+          path: |
+            TestResults/**
+            projects.json
+            test-projects.json
+          if-no-files-found: ignore
+
+      - name: Провалить workflow при упавших тестах
+        run: |
+          $summaryPath = Join-Path "${{ github.workspace }}" "${{ env.TEST_RESULTS_DIR }}\test-summary.json"
+          if (-not (Test-Path $summaryPath)) {
+            Write-Host "❌ test-summary.json не найден."
+            exit 1
+          }
+
+          $summary = Get-Content $summaryPath -Raw | ConvertFrom-Json
+
+          if ($summary.NoTests -eq $true -and "${{ env.FAIL_IF_NO_TEST_PROJECTS }}" -eq "true") {
+            Write-Host "❌ Тестовые проекты не найдены."
+            exit 1
+          }
+
+          if ($summary.AnyFailed -eq $true) {
+            Write-Host "❌ Есть упавшие тесты или ошибки запуска."
+            exit 1
+          }
+
+          Write-Host "✅ Все тесты прошли."
+        shell: pwsh
