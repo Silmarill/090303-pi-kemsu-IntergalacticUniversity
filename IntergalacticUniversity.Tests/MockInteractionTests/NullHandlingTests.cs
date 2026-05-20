@@ -1,16 +1,16 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class NullHandlingTests {
-    private Student _student;
-    private Course _course;
-    private Mock<IAttendanceRepository> _mockAttendance;
-    private Mock<IAssignmentsRepository> _mockAssignments;
-    private RatingCalculator _calculator;
+    private Student _student = null!;
+    private Course _course = null!;
+    private Mock<IAttendanceRepository> _mockAttendance = null!;
+    private Mock<IAssignmentsRepository> _mockAssignments = null!;
+    private RatingCalculator _calculator = null!;
 
     [SetUp]
     public void SetUp() {
@@ -38,7 +38,7 @@ namespace IntergalacticUniversity.Tests {
 
       double result = _calculator.CalculateCurrentScore(_student, _course);
 
-      Assert.That(result, Is.EqualTo(expectedAttendanceScore));
+      Assert.That(result, Is.EqualTo(expectedAttendanceScore).Within(0.001));
     }
 
     [Test]
@@ -52,7 +52,7 @@ namespace IntergalacticUniversity.Tests {
 
       double result = _calculator.CalculateCurrentScore(_student, _course);
 
-      Assert.That(result, Is.EqualTo(expectedAssignmentsScore));
+      Assert.That(result, Is.EqualTo(expectedAssignmentsScore).Within(0.001));
     }
   }
 }

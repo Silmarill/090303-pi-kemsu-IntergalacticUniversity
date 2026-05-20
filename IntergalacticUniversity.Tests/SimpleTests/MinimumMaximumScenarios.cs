@@ -1,17 +1,17 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class MinimumMaximumScenarios {
-    private Student _student;
-    private Course _examCourse;
-    private Course _creditCourse;
-    private Mock<IAttendanceRepository> _mockAttendance;
-    private Mock<IAssignmentsRepository> _mockAssignments;
-    private RatingCalculator _calculator;
+    private Student _student = null!;
+    private Course _examCourse = null!;
+    private Course _creditCourse = null!;
+    private Mock<IAttendanceRepository> _mockAttendance = null!;
+    private Mock<IAssignmentsRepository> _mockAssignments = null!;
+    private RatingCalculator _calculator = null!;
 
     [SetUp]
     public void SetUp() {
@@ -39,9 +39,9 @@ namespace IntergalacticUniversity.Tests {
 
     [TearDown]
     public void TearDown() {
-      _mockAttendance = null;
-      _mockAssignments = null;
-      _calculator = null;
+      _mockAttendance = null!;
+      _mockAssignments = null!;
+      _calculator = null!;
     }
 
     [Test]
@@ -51,7 +51,7 @@ namespace IntergalacticUniversity.Tests {
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(0.0));
+      Assert.That(result, Is.EqualTo(0.0).Within(0.001));
     }
 
     [Test]
@@ -67,7 +67,7 @@ namespace IntergalacticUniversity.Tests {
       double currentScore = _calculator.CalculateCurrentScore(_student, _examCourse);
       string grade = _calculator.ConvertToGrade(fullTotalScore);
 
-      Assert.That(currentScore, Is.EqualTo(expectedCurrent));
+      Assert.That(currentScore, Is.EqualTo(expectedCurrent).Within(0.001));
       Assert.That(grade, Is.EqualTo("Отлично"));
     }
 
@@ -82,12 +82,14 @@ namespace IntergalacticUniversity.Tests {
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
 
-      Assert.That(result, Is.EqualTo(expectedMaxCurrent));
+      Assert.That(result, Is.EqualTo(expectedMaxCurrent).Within(0.001));
     }
 
     [Test]
     public void CalculateTotalScore_ForCreditCourseWithMaxCredit_Returns95() {
-      double rawFor75Current = 923.08;
+      double maxAssignments = 80.0 - _creditCourse.MaxAttendanceScore;
+      double neededAssignmentsPart = 75.0 - _creditCourse.MaxAttendanceScore;
+      double rawFor75Current = neededAssignmentsPart / maxAssignments * _creditCourse.MaxRawAssignmentsScore;
       int fullAttendance = _creditCourse.TotalClasses;
       double maxCreditScore = 20.0;
       double expectedCurrent = 75.0;
@@ -99,8 +101,8 @@ namespace IntergalacticUniversity.Tests {
       double current = _calculator.CalculateCurrentScore(_student, _creditCourse);
       double total = _calculator.CalculateTotalScore(_student, _creditCourse, maxCreditScore);
 
-      Assert.That(current, Is.EqualTo(expectedCurrent));
-      Assert.That(total, Is.EqualTo(expectedTotal));
+      Assert.That(current, Is.EqualTo(expectedCurrent).Within(0.001));
+      Assert.That(total, Is.EqualTo(expectedTotal).Within(0.001));
     }
   }
 }

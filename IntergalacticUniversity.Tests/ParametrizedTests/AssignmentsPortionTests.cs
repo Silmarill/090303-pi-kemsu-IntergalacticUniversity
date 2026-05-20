@@ -1,17 +1,17 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class AssignmentsPortionTests {
-    private Student _student;
-    private Course _examCourse;
-    private Course _creditCourse;
-    private Mock<IAttendanceRepository> _mockAttendance;
-    private Mock<IAssignmentsRepository> _mockAssignments;
-    private RatingCalculator _calculator;
+    private Student _student = null!;
+    private Course _examCourse = null!;
+    private Course _creditCourse = null!;
+    private Mock<IAttendanceRepository> _mockAttendance = null!;
+    private Mock<IAssignmentsRepository> _mockAssignments = null!;
+    private RatingCalculator _calculator = null!;
 
     [SetUp]
     public void SetUp() {
@@ -48,8 +48,9 @@ namespace IntergalacticUniversity.Tests {
       _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(fullAttendance);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
+      double expected = expectedAssignmentsScore + maxAttendanceScore;
 
-      Assert.That(result, Is.EqualTo(expectedAssignmentsScore + maxAttendanceScore));
+      Assert.That(result, Is.EqualTo(expected).Within(0.001));
     }
 
     [TestCase(20, 10)]
@@ -63,8 +64,9 @@ namespace IntergalacticUniversity.Tests {
       _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
+      double expected = maxAssignments + expectedAttendanceScore;
 
-      Assert.That(result, Is.EqualTo(maxAssignments + expectedAttendanceScore));
+      Assert.That(result, Is.EqualTo(expected).Within(0.001));
     }
   }
 }

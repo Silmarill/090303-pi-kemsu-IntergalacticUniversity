@@ -3,11 +3,11 @@
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class GradeConversionTests {
-    private RatingCalculator _calculator;
+    private RatingCalculator _calculator = null!;
 
     [SetUp]
     public void SetUp() {
-      _calculator = new RatingCalculator(null, null);
+      _calculator = new RatingCalculator(null!, null!);
     }
 
     [TestCase(49, "Неудовлетворительно")]

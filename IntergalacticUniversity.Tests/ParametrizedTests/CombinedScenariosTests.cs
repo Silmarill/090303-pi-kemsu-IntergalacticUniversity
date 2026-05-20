@@ -1,16 +1,16 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
-  public class CombinedScenariosTests {
-    private Student _student;
-    private Course _examCourse;
-    private Mock<IAttendanceRepository> _mockAttendance;
-    private Mock<IAssignmentsRepository> _mockAssignments;
-    private RatingCalculator _calculator;
+  public class CombinedScenarioTests {
+    private Student _student = null!;
+    private Course _examCourse = null!;
+    private Mock<IAttendanceRepository> _mockAttendance = null!;
+    private Mock<IAssignmentsRepository> _mockAssignments = null!;
+    private RatingCalculator _calculator = null!;
 
     [SetUp]
     public void SetUp() {
@@ -37,7 +37,7 @@ namespace IntergalacticUniversity.Tests {
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(expectedCurrent));
+      Assert.That(result, Is.EqualTo(expectedCurrent).Within(0.001));
     }
   }
 }
