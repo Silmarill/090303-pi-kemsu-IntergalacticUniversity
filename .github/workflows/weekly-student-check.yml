@@ -1,4 +1,4 @@
-name: Еженедельная проверка работ (v4, all projects no conversion)
+name: Еженедельная проверка работ (v4)
 
 on:
   workflow_dispatch:
