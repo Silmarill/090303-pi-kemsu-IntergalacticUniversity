@@ -1,0 +1,43 @@
+name: Copilot-ревью (ручной запуск)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request number to review'
+        required: true
+        type: number
+      force:
+        description: 'Force re-review (overwrites previous Copilot comment)'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  copilot-review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.inputs.pr_number }}/head
+          fetch-depth: 1
+
+      - name: Authenticate GitHub CLI with token
+        run: |
+          echo "${{ secrets.COPILOT_GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Install Copilot extension
+        run: gh extension install k1LoW/gh-copilot-review
+
+      - name: Request Copilot review
+        run: |
+          if [ "${{ github.event.inputs.force }}" == "true" ]; then
+            gh copilot-review ${{ github.event.inputs.pr_number }} --force
+          else
+            gh copilot-review ${{ github.event.inputs.pr_number }}
+          fi

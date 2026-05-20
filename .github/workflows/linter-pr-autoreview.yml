@@ -1,0 +1,805 @@
+name: Linter-ревью по PR (v2.3, restore IDE diagnostics)
+
+on:
+  #pull_request_target:
+    #types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Номер Pull Request для проверки'
+        required: true
+        type: number
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  STYLECOP_ANALYZERS_VERSION: 1.2.0-beta.556
+
+jobs:
+  build-and-test:
+    if: |
+      (github.event_name != 'pull_request_target' ||
+       (github.event.pull_request.user.login == 'Silmarill' && github.event.pull_request.base.ref == 'main')) &&
+      (github.event_name != 'synchronize' || github.event.before != github.event.after)
+
+    runs-on: windows-latest
+
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Установить номер PR
+        id: pr
+        run: |
+          if ("${{ github.event_name }}" -eq "pull_request_target") {
+            $pr = "${{ github.event.number }}"
+          } else {
+            $pr = "${{ github.event.inputs.pr_number }}"
+          }
+
+          echo "number=$pr" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          echo "PR_NUMBER=$pr" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Получить код репозитория (ветка студента)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: refs/pull/${{ steps.pr.outputs.number }}/head
+          fetch-depth: 1
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+
+      - name: Получить скрипты и конфиги из ветки main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-branch
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+
+      - name: Установить MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Найти все .NET проекты и исходники
+        id: detect_projects
+        run: |
+          $workspace = [System.IO.Path]::GetFullPath("${{ github.workspace }}")
+
+          function Test-IsIgnoredPath([string]$path) {
+            $full = [System.IO.Path]::GetFullPath($path)
+            $relative = [System.IO.Path]::GetRelativePath($workspace, $full)
+
+            # Не используем wildcard с backslash: в PowerShell это легко ломается
+            # из-за различий между "/" и "\", а также из-за шаблонов вроде "**".
+            # Вместо этого проверяем путь по сегментам.
+            $segments = @(
+              $relative -split '[\\/]' |
+                Where-Object { $_ -and $_.Trim() -ne '' }
+            )
+
+            if ($segments.Count -eq 0) {
+              return $true
+            }
+
+            $ignoredSegments = @(
+              "main-branch",
+              ".git",
+              "bin",
+              "obj",
+              "packages"
+            )
+
+            foreach ($segment in $segments) {
+              if ($ignoredSegments -contains $segment) {
+                return $true
+              }
+            }
+
+            return $false
+          }
+
+          $projectFiles = Get-ChildItem -Path $workspace -Filter *.csproj -Recurse -File |
+            Where-Object { -not (Test-IsIgnoredPath $_.FullName) } |
+            Sort-Object FullName
+
+          $sourceFiles = Get-ChildItem -Path $workspace -Filter *.cs -Recurse -File |
+            Where-Object { -not (Test-IsIgnoredPath $_.FullName) } |
+            Sort-Object FullName
+
+          if ($projectFiles.Count -eq 0) {
+            Write-Host "❌ В PR не найдено ни одного .csproj. Найдено .cs файлов: $($sourceFiles.Count)."
+            Write-Host "Для сборки и StyleCop-проверки нужен хотя бы один проектный файл .csproj."
+            exit 1
+          }
+
+          $metadata = @()
+
+          foreach ($project in $projectFiles) {
+            $projectPath = $project.FullName
+            $projectDir = Split-Path $projectPath
+            $content = Get-Content $projectPath -Raw
+
+            # SDK-style: <Project Sdk="..."> или <Project ... Sdk="...">
+            $isSdkStyle = $false
+            if ($content -match '<Project\s+Sdk=' -or $content -match '<Project[^>]+Sdk=') {
+              $isSdkStyle = $true
+            }
+
+            $usesPackagesConfig = Test-Path (Join-Path $projectDir "packages.config")
+
+            # Определяем TargetFramework / TargetFrameworks / TargetFrameworkVersion.
+            $targets = @()
+            if ($content -match '<TargetFramework>\s*([^<]+)\s*</TargetFramework>') {
+              $targets = @($Matches[1].Trim())
+            } elseif ($content -match '<TargetFrameworks>\s*([^<]+)\s*</TargetFrameworks>') {
+              $targets = @(
+                $Matches[1] -split ';' |
+                  ForEach-Object { $_.Trim() } |
+                  Where-Object { $_ -ne '' }
+              )
+            } elseif ($content -match '<TargetFrameworkVersion>\s*([^<]+)\s*</TargetFrameworkVersion>') {
+              $targets = @($Matches[1].Trim())
+            }
+
+            $target = ""
+            if ($targets.Count -gt 0) {
+              $target = $targets[0]
+            }
+
+            $isNetFramework = $false
+            if ($target -match '^v?4\.' -or $target -match '^net4') {
+              $isNetFramework = $true
+            }
+
+            # Универсально определяем Configuration|Platform из условий старого .csproj.
+            $buildConfiguration = "Debug"
+            $buildPlatform = "AnyCPU"
+
+            $conditionPattern = "\$\(Configuration\)\|\$\(Platform\)'\s*==\s*'([^|']+)\|([^']+)'"
+            $conditionMatches = [regex]::Matches($content, $conditionPattern)
+
+            if ($conditionMatches.Count -gt 0) {
+              $selected = $null
+
+              foreach ($match in $conditionMatches) {
+                $config = $match.Groups[1].Value.Trim()
+                if ($config -eq "Debug") {
+                  $selected = $match
+                  break
+                }
+              }
+
+              if ($null -eq $selected) {
+                $selected = $conditionMatches[0]
+              }
+
+              $buildConfiguration = $selected.Groups[1].Value.Trim()
+              $buildPlatform = $selected.Groups[2].Value.Trim()
+            }
+
+            $metadata += [PSCustomObject]@{
+              Path = $projectPath
+              Dir = $projectDir
+              Name = $project.BaseName
+              RelativePath = [System.IO.Path]::GetRelativePath($workspace, $projectPath)
+              IsSdkStyle = $isSdkStyle
+              UsesPackagesConfig = $usesPackagesConfig
+              Target = $target
+              Targets = $targets
+              IsNetFramework = $isNetFramework
+              BuildConfiguration = $buildConfiguration
+              BuildPlatform = $buildPlatform
+            }
+          }
+
+          $projectsJsonPath = Join-Path $workspace "projects.json"
+          $projectListPath = Join-Path $workspace "project-list.txt"
+
+          $metadata | ConvertTo-Json -Depth 5 | Set-Content -Path $projectsJsonPath -Encoding utf8
+          $metadata | ForEach-Object { $_.Path } | Set-Content -Path $projectListPath -Encoding utf8
+
+          $hasPackagesConfig = [bool]($metadata | Where-Object { $_.UsesPackagesConfig })
+          $hasNetFramework = [bool]($metadata | Where-Object { $_.IsNetFramework -or (-not $_.IsSdkStyle) })
+          $hasNonSdkStyle = [bool]($metadata | Where-Object { -not $_.IsSdkStyle })
+
+          function Get-DotNetSdkVersionFromTarget([string]$targetFramework) {
+            if ([string]::IsNullOrWhiteSpace($targetFramework)) {
+              return $null
+            }
+
+            $tfm = $targetFramework.Trim().ToLowerInvariant()
+
+            # net8.0 / net9.0 / net10.0 -> соответствующий SDK.
+            if ($tfm -match '^net(\d+)\.0') {
+              $major = [int]$Matches[1]
+              if ($major -ge 5) {
+                return "$major.0.x"
+              }
+            }
+
+            # netcoreapp3.1 / netcoreapp2.1 -> соответствующий SDK.
+            if ($tfm -match '^netcoreapp(\d+)\.(\d+)') {
+              return "$($Matches[1]).$($Matches[2]).x"
+            }
+
+            # netstandard сам по себе не кодирует версию SDK.
+            # Для SDK-style проектов с netstandard нужен любой современный SDK;
+            if ($tfm -match '^netstandard') {
+              return "8.0.x"
+            }
+
+            return $null
+          }
+
+          $sdkVersions = @()
+          foreach ($project in $metadata) {
+            if ($project.IsSdkStyle -eq $true) {
+              foreach ($targetName in @($project.Targets)) {
+                $sdkVersion = Get-DotNetSdkVersionFromTarget $targetName
+                if ($null -ne $sdkVersion) {
+                  $sdkVersions += $sdkVersion
+                }
+              }
+            }
+          }
+
+          $sdkVersions = @($sdkVersions | Sort-Object -Unique)
+          $hasDotNetSdkVersions = [bool]($sdkVersions.Count -gt 0)
+
+          Write-Host "Найдено .csproj: $($projectFiles.Count)"
+          Write-Host "Найдено .cs файлов: $($sourceFiles.Count)"
+          Write-Host "Список проектов:"
+          foreach ($project in $metadata) {
+            $targetsForLog = @($project.Targets) -join ';'
+            Write-Host "- $($project.RelativePath) | SDK-style=$($project.IsSdkStyle) | packages.config=$($project.UsesPackagesConfig) | target=$targetsForLog | config=$($project.BuildConfiguration) | platform=$($project.BuildPlatform)"
+          }
+
+          if ($hasDotNetSdkVersions) {
+            Write-Host "Нужные .NET SDK по TargetFramework проектов:"
+            foreach ($sdkVersion in $sdkVersions) {
+              Write-Host "- $sdkVersion"
+            }
+          } else {
+            Write-Host "По найденным проектам отдельная установка .NET SDK не требуется."
+          }
+
+          echo "PROJECTS_JSON=$projectsJsonPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "PROJECT_LIST=$projectListPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "PROJECT_COUNT=$($projectFiles.Count)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "CS_FILE_COUNT=$($sourceFiles.Count)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "HAS_PACKAGES_CONFIG=$hasPackagesConfig" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "HAS_NET_FRAMEWORK=$hasNetFramework" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "HAS_NON_SDK_STYLE=$hasNonSdkStyle" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "HAS_DOTNET_SDK_VERSIONS=$hasDotNetSdkVersions" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          if ($hasDotNetSdkVersions) {
+            "DOTNET_SDK_VERSIONS<<EOF" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            $sdkVersions | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "EOF" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            echo "DOTNET_SDK_VERSIONS=" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+        shell: pwsh
+
+      - name: Установить .NET SDK из global.json, если он есть
+        if: hashFiles('global.json') != ''
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Установить .NET SDK по TargetFramework проектов
+        if: env.HAS_DOTNET_SDK_VERSIONS == 'True' && hashFiles('global.json') == ''
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_SDK_VERSIONS }}
+
+      - name: Показать версии .NET и MSBuild
+        run: |
+          if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+            dotnet --info
+          } else {
+            Write-Host ".NET SDK/CLI не найден. Для pure legacy .NET Framework проектов это допустимо."
+          }
+
+          msbuild -version
+        shell: pwsh
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Установить зависимости Python
+        run: pip install regex
+        shell: pwsh
+
+      - name: Копировать .editorconfig
+        run: |
+          if (Test-Path "${{ github.workspace }}/main-branch/.editorconfig") {
+            Copy-Item `
+              -Path "${{ github.workspace }}/main-branch/.editorconfig" `
+              -Destination "${{ github.workspace }}/.editorconfig" `
+              -Force
+          } else {
+            Write-Host ".editorconfig не найден"
+          }
+        shell: pwsh
+
+      - name: Копировать Settings.StyleCop.json во все проекты
+        run: |
+          $settingsPath = "${{ github.workspace }}/main-branch/Settings.StyleCop.json"
+
+          if (!(Test-Path $settingsPath)) {
+            Write-Host "Settings.StyleCop.json не найден"
+            exit 0
+          }
+
+          $projects = @(Get-Content "${{ env.PROJECTS_JSON }}" -Raw | ConvertFrom-Json)
+
+          foreach ($project in $projects) {
+            Copy-Item `
+              -Path $settingsPath `
+              -Destination (Join-Path $project.Dir "Settings.StyleCop.json") `
+              -Force
+
+            Write-Host "Settings.StyleCop.json скопирован в $($project.RelativePath)"
+          }
+        shell: pwsh
+
+      # Важно:
+      # Старые .NET Framework / non-SDK проекты не переписываем автоматически.
+      # Для них выполняем restore/build через NuGet + MSBuild и проверяем то, что сдал студент.
+      - name: Подключить StyleCop к SDK-style проектам без конвертации
+        run: |
+          $projects = @(Get-Content "${{ env.PROJECTS_JSON }}" -Raw | ConvertFrom-Json)
+          $sdkProjects = @($projects | Where-Object { $_.IsSdkStyle -eq $true })
+          $styleCopVersion = "${{ env.STYLECOP_ANALYZERS_VERSION }}"
+
+          if ($sdkProjects.Count -eq 0) {
+            Write-Host "SDK-style проекты не найдены. Подключение StyleCop пропущено."
+            exit 0
+          }
+
+          function Ensure-ChildElement([System.Xml.XmlDocument]$xml, [System.Xml.XmlElement]$parent, [string]$name, [string]$value) {
+            $node = $parent.SelectSingleNode("*[local-name()='$name']")
+            if ($null -eq $node) {
+              $node = $xml.CreateElement($name)
+              [void]$parent.AppendChild($node)
+            }
+            $node.InnerText = $value
+          }
+
+          function Ensure-StyleCopPackageReference([string]$projectPath, [string]$version) {
+            [xml]$xml = Get-Content $projectPath -Raw
+            $root = $xml.DocumentElement
+
+            $package = $xml.SelectSingleNode("/*[local-name()='Project']/*[local-name()='ItemGroup']/*[local-name()='PackageReference' and @Include='StyleCop.Analyzers']")
+            if ($null -eq $package) {
+              $itemGroup = $xml.SelectSingleNode("/*[local-name()='Project']/*[local-name()='ItemGroup'][*[local-name()='PackageReference']]")
+              if ($null -eq $itemGroup) {
+                $itemGroup = $xml.CreateElement("ItemGroup")
+                [void]$root.AppendChild($itemGroup)
+              }
+
+              $package = $xml.CreateElement("PackageReference")
+              $package.SetAttribute("Include", "StyleCop.Analyzers")
+              $package.SetAttribute("Version", $version)
+              [void]$itemGroup.AppendChild($package)
+            } else {
+              $versionNode = $package.SelectSingleNode("*[local-name()='Version']")
+              if ($package.HasAttribute("Version")) {
+                $package.SetAttribute("Version", $version)
+              } elseif ($null -ne $versionNode) {
+                $versionNode.InnerText = $version
+              } else {
+                $package.SetAttribute("Version", $version)
+              }
+            }
+
+            Ensure-ChildElement $xml $package "PrivateAssets" "all"
+            Ensure-ChildElement $xml $package "IncludeAssets" "runtime; build; native; contentfiles; analyzers; buildtransitive"
+            $xml.Save($projectPath)
+          }
+
+          foreach ($project in $sdkProjects) {
+            Write-Host "Подключаю StyleCop.Analyzers к $($project.RelativePath)"
+            Ensure-StyleCopPackageReference "$($project.Path)" $styleCopVersion
+          }
+        shell: pwsh
+
+      - name: Пропустить изменение non-SDK проектов
+        if: env.HAS_NON_SDK_STYLE == 'True'
+        run: |
+          Write-Host "В репозитории есть non-SDK проекты. Они не будут переписаны автоматически."
+          Write-Host "Такие проекты будут собраны через NuGet packages.config + MSBuild."
+        shell: pwsh
+
+      - name: Кэшировать NuGet пакеты
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nuget/packages
+            packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.config') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Кэшировать .NET tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.dotnet/tools
+          key: ${{ runner.os }}-dotnet-tools
+
+      - name: Установить NuGet
+        if: env.HAS_PACKAGES_CONFIG == 'True'
+        uses: NuGet/setup-nuget@v2
+
+      - name: Восстановить пакеты packages.config во всех проектах
+        if: env.HAS_PACKAGES_CONFIG == 'True'
+        run: |
+          $projects = @(Get-Content "${{ env.PROJECTS_JSON }}" -Raw | ConvertFrom-Json)
+          $legacyProjects = @($projects | Where-Object { $_.UsesPackagesConfig -eq $true })
+
+          foreach ($project in $legacyProjects) {
+            $packagesConfig = Join-Path $project.Dir "packages.config"
+
+            Write-Host "Восстанавливаю packages.config для $($project.RelativePath)"
+            nuget restore "$packagesConfig" -PackagesDirectory "${{ github.workspace }}\packages"
+
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "❌ NuGet restore завершился с ошибкой для $($project.RelativePath)"
+              exit $LASTEXITCODE
+            }
+          }
+        shell: pwsh
+
+      - name: Восстановить пакеты SDK-style / PackageReference во всех проектах
+        run: |
+          $projects = @(Get-Content "${{ env.PROJECTS_JSON }}" -Raw | ConvertFrom-Json)
+          $restoreProjects = @($projects | Where-Object { $_.IsSdkStyle -eq $true -and $_.UsesPackagesConfig -ne $true })
+
+          if ($restoreProjects.Count -eq 0) {
+            Write-Host "Проекты для dotnet restore не найдены."
+            exit 0
+          }
+
+          foreach ($project in $restoreProjects) {
+            Write-Host "dotnet restore: $($project.RelativePath)"
+            dotnet restore "$($project.Path)"
+
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "❌ dotnet restore завершился с ошибкой для $($project.RelativePath)"
+              exit $LASTEXITCODE
+            }
+          }
+        shell: pwsh
+
+      - name: Собрать все найденные проекты
+        id: build_all
+        run: |
+          $projects = @(Get-Content "${{ env.PROJECTS_JSON }}" -Raw | ConvertFrom-Json)
+          $buildLog = "${{ github.workspace }}\build.log"
+          "" | Set-Content -Path $buildLog -Encoding utf8
+
+          $overallExitCode = 0
+
+          foreach ($project in $projects) {
+            Add-Content -Path $buildLog -Value ""
+            Add-Content -Path $buildLog -Value "============================================================"
+            Add-Content -Path $buildLog -Value "PROJECT: $($project.RelativePath)"
+            Add-Content -Path $buildLog -Value "SDK-style: $($project.IsSdkStyle), Target: $($project.Target), Configuration: $($project.BuildConfiguration), Platform: $($project.BuildPlatform)"
+            Add-Content -Path $buildLog -Value "============================================================"
+
+            Write-Host "Собираю $($project.RelativePath)"
+
+            if ($project.IsNetFramework -eq $true -or $project.IsSdkStyle -ne $true) {
+              msbuild "$($project.Path)" /p:Configuration="$($project.BuildConfiguration)" /p:Platform="$($project.BuildPlatform)" 2>&1 | Tee-Object -FilePath $buildLog -Append
+            } else {
+              dotnet build "$($project.Path)" --no-restore 2>&1 | Tee-Object -FilePath $buildLog -Append
+            }
+
+            $exitCode = $LASTEXITCODE
+
+            if ($exitCode -ne 0) {
+              $overallExitCode = $exitCode
+              Write-Host "❌ Сборка завершилась с ошибкой для $($project.RelativePath). Код: $exitCode"
+            } else {
+              Write-Host "✅ Сборка успешна: $($project.RelativePath)"
+            }
+          }
+
+          echo "BUILD_EXIT_CODE=$overallExitCode" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          if ($overallExitCode -ne 0) {
+            Write-Host "❌ Одна или несколько сборок завершились с ошибкой. Последние строки общего лога:"
+            Get-Content $buildLog -Tail 60
+            exit $overallExitCode
+          }
+        shell: pwsh
+
+      - name: Обработка ошибки сборки или подготовки проекта
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN || github.token }}
+          script: |
+            const prNumber = ${{ steps.pr.outputs.number }};
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            try {
+              const { data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: prNumber
+              });
+
+              let title = pr.title;
+              if (!title.includes('[BUILD FAILED]')) {
+                title = title + ' [BUILD FAILED]';
+                await github.rest.pulls.update({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  title: title
+                });
+                console.log('PR переименован');
+              }
+
+              const fs = require('fs');
+              const logPath = process.env.GITHUB_WORKSPACE + '/build.log';
+
+              let lastLines = 'Лог сборки не найден. Ошибка могла произойти до шага сборки.';
+              if (fs.existsSync(logPath)) {
+                const content = fs.readFileSync(logPath, 'utf8');
+                const lines = content.split(/\r?\n/);
+                lastLines = lines.slice(-60).join('\n');
+              }
+
+              const commentBody = `## ❌ Сборка не удалась
+
+            **PR переименован с добавлением [BUILD FAILED]**
+
+            Последние 60 строк вывода сборки:
+
+            \`\`\`
+            ${lastLines}
+            \`\`\``;
+
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner,
+                repo,
+                body: commentBody
+              });
+
+              console.log('Комментарий создан');
+            } catch (error) {
+              console.error('Ошибка при обработке ошибки сборки:', error);
+            }
+
+      - name: Убрать метку [BUILD FAILED] из названия PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN || github.token }}
+          script: |
+            const prNumber = ${{ steps.pr.outputs.number }};
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            try {
+              const { data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: prNumber
+              });
+
+              let title = pr.title;
+              if (title.includes('[BUILD FAILED]')) {
+                title = title.replace(/\[BUILD FAILED\]/g, '').trim();
+
+                await github.rest.pulls.update({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  title: title
+                });
+
+                console.log('Метка [BUILD FAILED] удалена');
+              }
+            } catch (error) {
+              console.error('Ошибка при удалении метки:', error);
+            }
+
+      - name: Проверить IDE диагностики dotnet format для всех проектов
+        if: success()
+        run: |
+          $projects = @(Get-Content "${{ env.PROJECTS_JSON }}" -Raw | ConvertFrom-Json)
+          $formatProjects = @($projects)
+          $formatLog = "${{ github.workspace }}\ide_warnings.txt"
+          "" | Set-Content -Path $formatLog -Encoding utf8
+
+          if ($formatProjects.Count -eq 0) {
+            Write-Host "Проекты не найдены. dotnet format пропущен."
+            Add-Content -Path $formatLog -Value "Проекты не найдены. dotnet format пропущен."
+            exit 0
+          }
+
+          if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+            Write-Host "dotnet CLI не найден. IDE-диагностики через dotnet format пропущены."
+            Add-Content -Path $formatLog -Value "dotnet CLI не найден. IDE-диагностики через dotnet format пропущены."
+            exit 0
+          }
+
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+
+          dotnet format --help *> $null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Команда dotnet format недоступна. Пробую установить/обновить dotnet-format tool."
+            dotnet tool update -g dotnet-format
+            if ($LASTEXITCODE -ne 0) {
+              dotnet tool install -g dotnet-format
+            }
+          }
+
+          foreach ($project in $formatProjects) {
+            Add-Content -Path $formatLog -Value ""
+            Add-Content -Path $formatLog -Value "============================================================"
+            Add-Content -Path $formatLog -Value "DOTNET FORMAT: $($project.RelativePath)"
+            Add-Content -Path $formatLog -Value "SDK-style: $($project.IsSdkStyle), Target: $($project.Target), Configuration: $($project.BuildConfiguration), Platform: $($project.BuildPlatform)"
+            Add-Content -Path $formatLog -Value "============================================================"
+
+            Write-Host "dotnet format: $($project.RelativePath)"
+
+            $output = & dotnet format "$($project.Path)" style --verify-no-changes --severity info 2>&1
+            $exitCode = $LASTEXITCODE
+
+            $output | Tee-Object -FilePath $formatLog -Append
+
+            if ($exitCode -ne 0) {
+              Add-Content -Path $formatLog -Value "dotnet format exit code: $exitCode"
+              Write-Host "dotnet format завершился с кодом $exitCode для $($project.RelativePath). Это не ломает workflow; вывод попадёт в отчёт."
+            }
+          }
+
+          # IDE-предупреждения не должны ломать workflow:
+          # они анализируются parse_log_to_json.py и попадают в stylecop_report.txt.
+          exit 0
+        shell: pwsh
+
+      - name: Объединить логи
+        if: success()
+        run: |
+          if (Test-Path build.log) {
+            Get-Content build.log > combined.log
+          } else {
+            "Файл build.log не найден." > combined.log
+          }
+
+          Add-Content combined.log "`n=== Предупреждения dotnet format ===`n"
+
+          if (Test-Path ide_warnings.txt) {
+            Get-Content ide_warnings.txt >> combined.log
+          } else {
+            Add-Content combined.log "Файл с предупреждениями IDE не найден."
+          }
+        shell: pwsh
+
+      - name: Преобразовать лог в JSON
+        if: success()
+        run: |
+          python "${{ github.workspace }}/main-branch/.github/scripts/parse_log_to_json.py" `
+            --log-file "${{ github.workspace }}/combined.log" `
+            --output-json "${{ github.workspace }}/warnings.json"
+        shell: pwsh
+
+      - name: Создать текстовый отчёт
+        if: success()
+        run: |
+          python "${{ github.workspace }}/main-branch/.github/scripts/generate_report_from_json.py" `
+            --json-file "${{ github.workspace }}/warnings.json" `
+            --output-txt "${{ github.workspace }}/stylecop_report.txt"
+        shell: pwsh
+
+      - name: Получить текущую дату и время
+        if: success()
+        id: date
+        run: |
+          $date = Get-Date -Format "yyyy-MM-dd-HHmm"
+          echo "date=$date" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Сформировать имя артефакта
+        if: success()
+        id: artifact_name
+        run: |
+          $repoName = "${{ github.event.repository.name }}"
+          $prNumber = "${{ steps.pr.outputs.number }}"
+          $runNumber = "${{ github.run_number }}"
+          $shaShort = "${{ github.sha }}"[0..3] -join ''
+          $date = "${{ steps.date.outputs.date }}"
+          $artifactName = "${repoName}_PR${prNumber}_${date}_${runNumber}-${shaShort}"
+
+          echo "name=$artifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Сохранить артефакты
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact_name.outputs.name }}
+          path: |
+            build.log
+            ide_warnings.txt
+            combined.log
+            warnings.json
+            stylecop_report.txt
+            projects.json
+            project-list.txt
+
+      - name: Проанализировать предупреждения и оставить комментарий в PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN || github.token }}
+          script: |
+            const fs = require('fs');
+            const warningsPath = process.env.GITHUB_WORKSPACE + '/warnings.json';
+            let warningCount = 0;
+
+            if (fs.existsSync(warningsPath)) {
+              try {
+                const data = JSON.parse(fs.readFileSync(warningsPath, 'utf8'));
+
+                if (Array.isArray(data)) {
+                  warningCount = data.length;
+                } else if (data.warnings && Array.isArray(data.warnings)) {
+                  warningCount = data.warnings.length;
+                } else {
+                  warningCount = Object.keys(data).length;
+                }
+              } catch (e) {
+                console.log('Ошибка парсинга JSON:', e.message);
+                warningCount = -1;
+              }
+            }
+
+            let message = '';
+            if (warningCount === 0) {
+              message = '✅ Все автоматические проверки кода прошли успешно.';
+            } else if (warningCount > 0 && warningCount <= 5) {
+              message = '👍 В целом неплохо, хорошая работа! Пожалуйста, ознакомьтесь с небольшими замечаниями.';
+            } else if (warningCount > 5) {
+              message = '⚠️ Требуется доработка. Ознакомьтесь с замечаниями и исправьте код.';
+            } else {
+              message = '❌ Не удалось получить количество предупреждений. Проверьте логи сборки вручную.';
+            }
+
+            const reportPath = process.env.GITHUB_WORKSPACE + '/stylecop_report.txt';
+            let fullReport = 'Детальный отчёт недоступен.';
+
+            if (fs.existsSync(reportPath)) {
+              fullReport = fs.readFileSync(reportPath, 'utf8');
+            }
+
+            const truncatedReport =
+              fullReport.length > 50000
+                ? fullReport.substring(0, 50000) + '\n... (обрезано - см. артефакты в Actions)'
+                : fullReport;
+
+            const commentBody = `## Анализ качества кода
+
+            **Найдено предупреждений: ${warningCount === -1 ? 'ошибка' : warningCount}**
+
+            ${message}
+
+            \`\`\`
+            ${truncatedReport}
+            \`\`\``;
+
+            await github.rest.issues.createComment({
+              issue_number: ${{ steps.pr.outputs.number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });

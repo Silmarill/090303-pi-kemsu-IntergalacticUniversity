@@ -1,0 +1,212 @@
+name: Сбор исходников одного студента
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Имя ветки студента (например: group1/ivanov или group2/petrov)'
+        required: true
+        type: string
+        default: ''
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  collect-sources:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Collect student source files
+        shell: pwsh
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH_NAME: ${{ github.event.inputs.branch_name }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PatToken      = $env:PAT_TOKEN
+          $Repository    = $env:REPO
+          $BranchName    = $env:BRANCH_NAME
+
+          $SourceExtensions = @('.cs', '.csproj', '.sln', '.slnx', '.config', '.resx', '.settings')
+          $ExcludedDirs = @(
+              '.vscode', '.git', 'bin', 'obj', 'packages',
+              'node_modules', '.vs', 'resources', 'Assets', '.github'
+          )
+          $ExcludedFiles = @(
+              'packages.config',
+              '.editorconfig', '.gitattributes', '.gitignore',
+              'LICENSE', 'LICENSE.md', 'README.md', 'README.txt',
+              '.yml'
+          )
+          $ExcludedFilesForTree = $ExcludedFiles + @(
+              'AssemblyInfo.cs', 'App.config', 'app.config', 'App.Config'
+          )
+
+          if ([string]::IsNullOrWhiteSpace($BranchName)) {
+              Write-Error "Branch name is required as input parameter"
+              exit 1
+          }
+
+          Write-Host "Starting source collection for branch: $BranchName"
+
+          git fetch --all
+          
+          $branchExists = git branch -r | Where-Object { $_ -match "origin/$BranchName$" }
+          if (-not $branchExists) {
+              Write-Error "Branch '$BranchName' not found"
+              exit 1
+          }
+          
+          Write-Host "Found branch: $BranchName"
+
+          $outRoot = "$env:GITHUB_WORKSPACE/collected"
+          New-Item -Path $outRoot -ItemType Directory -Force | Out-Null
+
+          Write-Host "`n========================================"
+          Write-Host "Collecting branch: $BranchName"
+          Write-Host "========================================"
+
+          $branchSafe = $BranchName -replace '/', '_'
+          $destDir    = "$outRoot/$branchSafe"
+          New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+          $filePrefix = "_${branchSafe}"
+
+          git clone --depth 1 --branch $BranchName `
+              "https://x-access-token:$PatToken@github.com/$Repository" `
+              clone-temp
+          Push-Location clone-temp
+
+          function Write-Tree {
+              param([string]$Path, [string]$Indent = "")
+              $items = Get-ChildItem -LiteralPath $Path |
+                  Where-Object { 
+                      $_.Name -ne '.git' -and
+                      $ExcludedDirs -notcontains $_.Name -and
+                      $ExcludedFilesForTree -notcontains $_.Name
+                  } |
+                  Sort-Object { $_.PSIsContainer } -Descending |
+                  Sort-Object Name
+              foreach ($item in $items) {
+                  if ($item.PSIsContainer) {
+                      "$Indent$($item.Name)/"
+                      Write-Tree -Path $item.FullName -Indent "$Indent    "
+                  } else {
+                      if (($item.Extension -eq '.cs' -or $item.Extension -eq '.csproj') -and
+                          $ExcludedFilesForTree -notcontains $item.Name) {
+                          "$Indent$($item.Name)"
+                      }
+                  }
+              }
+          }
+
+          $separator = '=' * 60
+          $treeLines = @("Repository structure: $BranchName", $separator, "")
+          $treeLines += Write-Tree -Path (Get-Location).Path
+          $treeFile = "$destDir/${filePrefix}_structure.txt"
+          $treeLines | Out-File -FilePath $treeFile -Encoding utf8
+          Write-Host "  → structure.txt generated"
+
+          Write-Host "  → creating combined_sources.txt..."
+          $sourceFilesForCombine = Get-ChildItem -Recurse -File |
+              Where-Object {
+                  ($_.Extension -eq '.cs' -or $_.Extension -eq '.csproj') -and
+                  $ExcludedDirs -notcontains $_.Directory.Name -and
+                  $ExcludedFilesForTree -notcontains $_.Name -and
+                  $_.FullName -notmatch "\\bin\\" -and
+                  $_.FullName -notmatch "\\obj\\"
+              }
+          $sourceFilesForCombine = $sourceFilesForCombine | Where-Object {
+              $fullPath = $_.FullName
+              $exclude = $false
+              foreach ($excludedDir in $ExcludedDirs) {
+                  if ($fullPath -match "\\$excludedDir\\") {
+                      $exclude = $true
+                      break
+                  }
+              }
+              -not $exclude
+          }
+          function Get-PathDepth { param([string]$Path) { ($Path -split '\\').Count } }
+          $sortedFiles = $sourceFilesForCombine | Sort-Object {
+              $depth = Get-PathDepth -Path $_.DirectoryName
+              return $depth, $_.DirectoryName, $_.Name
+          }
+          $combinedContent = @()
+          $combinedContent += "=== COMBINED SOURCES: $BranchName ==="
+          $combinedContent += "=== Total files: $($sortedFiles.Count) ==="
+          $combinedContent += ""
+          foreach ($file in $sortedFiles) {
+              $relativePath = Resolve-Path -Relative $file.FullName
+              $relativePath = $relativePath -replace '^\.\\', '' -replace '\\', '/'
+              $combinedContent += "=== File: $relativePath ==="
+              try {
+                  $content = Get-Content $file.FullName -Raw -Encoding UTF8
+                  $combinedContent += $content
+                  $combinedContent += ""
+              } catch {
+                  $combinedContent += "[ERROR: failed to read file]"
+                  $combinedContent += ""
+              }
+          }
+          $combinedFile = "$destDir/${filePrefix}_combined_sources.txt"
+          $combinedContent -join "`r`n" | Out-File -FilePath $combinedFile -Encoding utf8
+          Write-Host "  → combined_sources.txt created (files: $($sortedFiles.Count))"
+
+          Write-Host "  → copying project structure..."
+          $filesToCopy = Get-ChildItem -Recurse -File |
+              Where-Object {
+                  $SourceExtensions -contains $_.Extension.ToLower() -and
+                  $ExcludedDirs -notcontains $_.Directory.Name -and
+                  $ExcludedFiles -notcontains $_.Name
+              } |
+              Where-Object {
+                  $fullPath = $_.FullName
+                  $exclude = $false
+                  foreach ($excludedDir in $ExcludedDirs) {
+                      if ($fullPath -match "\\$excludedDir\\") {
+                          $exclude = $true
+                          break
+                      }
+                  }
+                  -not $exclude
+              }
+          foreach ($file in $filesToCopy) {
+              $relativePath = Resolve-Path -Relative $file.FullName
+              $relativePath = $relativePath -replace '^\.\\', ''
+              $targetPath = Join-Path $destDir $relativePath
+              $targetDir = Split-Path $targetPath -Parent
+              if (-not (Test-Path $targetDir)) {
+                  New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+              }
+              Copy-Item -Path $file.FullName -Destination $targetPath -Force
+          }
+          Write-Host "  → copied $($filesToCopy.Count) files (folders preserved)"
+
+          Pop-Location
+          Remove-Item -Recurse -Force clone-temp
+
+          # Сохраняем безопасное имя для артефакта
+          $safeArtifactName = "student-sources-$branchSafe"
+          echo "SAFE_ARTIFACT_NAME=$safeArtifactName" >> $env:GITHUB_ENV
+
+          Write-Host "`n========================================"
+          Write-Host "Collection complete. Output: $outRoot"
+          Write-Host "Artifact name: $safeArtifactName"
+          Write-Host "========================================"
+
+      - name: Upload collected sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.SAFE_ARTIFACT_NAME }}
+          path: collected/

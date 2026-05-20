@@ -1,0 +1,250 @@
+name: Сбор исходников всех студентов
+
+on:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  collect-sources:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Collect student source files
+        shell: pwsh
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH_PATTERN: '(group[1-3]/[^/]+|main)'
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PatToken      = $env:PAT_TOKEN
+          $Repository    = $env:REPO
+          $BranchPattern = $env:BRANCH_PATTERN
+
+          $SourceExtensions = @('.cs', '.csproj', '.sln', '.slnx', '.config', '.resx', '.settings')
+          $ExcludedDirs = @(
+              '.vscode', '.git', 'bin', 'obj', 'packages',
+              'node_modules', '.vs', 'resources', 'Assets', '.github'
+          )
+          $ExcludedFiles = @(
+              'packages.config',
+              '.editorconfig', '.gitattributes', '.gitignore',
+              'LICENSE', 'LICENSE.md', 'README.md', 'README.txt',
+              '.yml'
+          )
+          $ExcludedFilesForTree = $ExcludedFiles + @(
+              'AssemblyInfo.cs', 'App.config', 'app.config', 'App.Config'
+          )
+
+          Write-Host "Starting source collection..."
+
+          git fetch --all
+          $branches = git branch -r |
+              Where-Object { $_ -match "origin/($BranchPattern)$" } |
+              ForEach-Object { $matches[1] }
+          Write-Host "Found branches: $($branches -join ', ')"
+
+          $total   = $branches.Count
+          $index   = 0
+          $outRoot = "$env:GITHUB_WORKSPACE/collected"
+          New-Item -Path $outRoot -ItemType Directory -Force | Out-Null
+
+          foreach ($branch in $branches) {
+              $index++
+              Write-Host "`n========================================"
+              Write-Host "[$index/$total] Collecting branch: $branch"
+              Write-Host "========================================"
+
+              $branchSafe = $branch -replace '/', '_'
+              $destDir    = "$outRoot/$branchSafe"
+              New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+              $filePrefix = "_${branchSafe}"
+
+              git clone --depth 1 --branch $branch `
+                  "https://x-access-token:$PatToken@github.com/$Repository" `
+                  clone-temp
+              Push-Location clone-temp
+
+              # ---- 1. structure.txt ----
+              function Write-Tree {
+                  param([string]$Path, [string]$Indent = "")
+                  $items = Get-ChildItem -LiteralPath $Path |
+                      Where-Object { 
+                          $_.Name -ne '.git' -and
+                          $ExcludedDirs -notcontains $_.Name -and
+                          $ExcludedFilesForTree -notcontains $_.Name
+                      } |
+                      Sort-Object { $_.PSIsContainer } -Descending |
+                      Sort-Object Name
+                  foreach ($item in $items) {
+                      if ($item.PSIsContainer) {
+                          "$Indent$($item.Name)/"
+                          Write-Tree -Path $item.FullName -Indent "$Indent    "
+                      } else {
+                          if (($item.Extension -eq '.cs' -or $item.Extension -eq '.csproj') -and
+                              $ExcludedFilesForTree -notcontains $item.Name) {
+                              "$Indent$($item.Name)"
+                          }
+                      }
+                  }
+              }
+
+              $separator = '=' * 60
+              $treeLines = @("Repository structure: $branch", $separator, "")
+              $treeLines += Write-Tree -Path (Get-Location).Path
+              $treeFile = "$destDir/${filePrefix}_structure.txt"
+              $treeLines | Out-File -FilePath $treeFile -Encoding utf8
+              Write-Host "  → structure.txt generated"
+
+              # ---- 2. combined_sources.txt для студента ----
+              Write-Host "  → creating combined_sources.txt..."
+              $sourceFilesForCombine = Get-ChildItem -Recurse -File |
+                  Where-Object {
+                      ($_.Extension -eq '.cs' -or $_.Extension -eq '.csproj') -and
+                      $ExcludedDirs -notcontains $_.Directory.Name -and
+                      $ExcludedFilesForTree -notcontains $_.Name -and
+                      $_.FullName -notmatch "\\bin\\" -and
+                      $_.FullName -notmatch "\\obj\\"
+                  }
+              $sourceFilesForCombine = $sourceFilesForCombine | Where-Object {
+                  $fullPath = $_.FullName
+                  $exclude = $false
+                  foreach ($excludedDir in $ExcludedDirs) {
+                      if ($fullPath -match "\\$excludedDir\\") {
+                          $exclude = $true
+                          break
+                      }
+                  }
+                  -not $exclude
+              }
+              function Get-PathDepth { param([string]$Path) { ($Path -split '\\').Count } }
+              $sortedFiles = $sourceFilesForCombine | Sort-Object {
+                  $depth = Get-PathDepth -Path $_.DirectoryName
+                  return $depth, $_.DirectoryName, $_.Name
+              }
+              $combinedContent = @()
+              $combinedContent += "=== COMBINED SOURCES: $branch ==="
+              $combinedContent += "=== Total files: $($sortedFiles.Count) ==="
+              $combinedContent += ""
+              foreach ($file in $sortedFiles) {
+                  $relativePath = Resolve-Path -Relative $file.FullName
+                  $relativePath = $relativePath -replace '^\.\\', '' -replace '\\', '/'
+                  $combinedContent += "=== File: $relativePath ==="
+                  try {
+                      $content = Get-Content $file.FullName -Raw -Encoding UTF8
+                      $combinedContent += $content
+                      $combinedContent += ""
+                  } catch {
+                      $combinedContent += "[ERROR: failed to read file]"
+                      $combinedContent += ""
+                  }
+              }
+              $combinedFile = "$destDir/${filePrefix}_combined_sources.txt"
+              $combinedContent -join "`r`n" | Out-File -FilePath $combinedFile -Encoding utf8
+              Write-Host "  → combined_sources.txt created (files: $($sortedFiles.Count))"
+
+              # ---- 3. Копирование структуры проекта (полной) ----
+              Write-Host "  → copying project structure..."
+              $filesToCopy = Get-ChildItem -Recurse -File |
+                  Where-Object {
+                      $SourceExtensions -contains $_.Extension.ToLower() -and
+                      $ExcludedDirs -notcontains $_.Directory.Name -and
+                      $ExcludedFiles -notcontains $_.Name
+                  } |
+                  Where-Object {
+                      $fullPath = $_.FullName
+                      $exclude = $false
+                      foreach ($excludedDir in $ExcludedDirs) {
+                          if ($fullPath -match "\\$excludedDir\\") {
+                              $exclude = $true
+                              break
+                          }
+                      }
+                      -not $exclude
+                  }
+              foreach ($file in $filesToCopy) {
+                  $relativePath = Resolve-Path -Relative $file.FullName
+                  $relativePath = $relativePath -replace '^\.\\', ''
+                  $targetPath = Join-Path $destDir $relativePath
+                  $targetDir = Split-Path $targetPath -Parent
+                  if (-not (Test-Path $targetDir)) {
+                      New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+                  }
+                  Copy-Item -Path $file.FullName -Destination $targetPath -Force
+              }
+              Write-Host "  → copied $($filesToCopy.Count) files (folders preserved)"
+
+              Pop-Location
+              Remove-Item -Recurse -Force clone-temp
+          }
+
+          # ------------------------------------------------------------
+          # 4. Создание общей склейки ВСЕХ студентов (динамически)
+          # ------------------------------------------------------------
+          Write-Host "`n========================================"
+          Write-Host "Creating global combined file for all students..."
+          Write-Host "========================================"
+
+          # Собираем все подпапки в collected/, кроме 'main' и служебных
+          $allItems = Get-ChildItem -Path $outRoot -Directory
+          $studentFolders = $allItems | Where-Object {
+              $_.Name -ne 'main' -and $_.Name -notmatch '^_'
+          } | ForEach-Object { $_.Name }
+
+          # Сортируем по номеру группы и имени: group1_*, group2_*, group3_*
+          $sortedStudents = $studentFolders | Sort-Object {
+              if ($_ -match '^group(\d+)_(.+)$') {
+                  [int]$matches[1], $matches[2]
+              } else {
+                  99, $_   # прочие папки в конец
+              }
+          }
+
+          Write-Host "Found students: $($sortedStudents -join ', ')"
+
+          $globalCombinedLines = @()
+          $globalCombinedLines += "=== STUDENTS: $($sortedStudents -join ', ') ==="
+          $globalCombinedLines += ""
+
+          foreach ($student in $sortedStudents) {
+              $combinedSourceFile = Join-Path $outRoot $student "_${student}_combined_sources.txt"
+              if (-not (Test-Path $combinedSourceFile)) {
+                  Write-Host "  → Warning: $combinedSourceFile not found, skipping $student"
+                  continue
+              }
+              Write-Host "  → adding $student"
+              $globalCombinedLines += "=== STUDENT: $student ==="
+              $studentContent = Get-Content $combinedSourceFile -Raw -Encoding UTF8
+              # Удаляем первые две строки (=== COMBINED SOURCES: ... === и === Total files: ... ===)
+              $lines = $studentContent -split "`r`n"
+              if ($lines.Count -gt 2) {
+                  $filteredLines = $lines | Select-Object -Skip 2
+                  $filteredContent = $filteredLines -join "`r`n"
+                  $globalCombinedLines += $filteredContent
+              } else {
+                  $globalCombinedLines += $studentContent
+              }
+              $globalCombinedLines += ""   # пустая строка между студентами
+          }
+
+          $globalCombinedFile = Join-Path $outRoot "_all_students_combined.txt"
+          $globalCombinedLines -join "`r`n" | Out-File -FilePath $globalCombinedFile -Encoding utf8
+          Write-Host "  → created $globalCombinedFile"
+          Write-Host "Collection complete. Output: $outRoot"
+
+      - name: Upload collected sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-sources
+          path: collected/
