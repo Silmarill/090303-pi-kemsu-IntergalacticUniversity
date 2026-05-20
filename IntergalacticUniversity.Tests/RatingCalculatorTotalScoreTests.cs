@@ -1,12 +1,11 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class RatingCalculatorTotalScoreTests {
-
     // Поля для моков, калькулятора и тестового студента
     private Mock<IAttendanceRepository> _mockAttendance;
     private Mock<IAssignmentsRepository> _mockAssignments;
