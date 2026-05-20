@@ -1,14 +1,14 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
   public class Block2_4_CombinedScenariosTests {
     private Student _student;
     private Course _course;
-    private Mock<IAttendanceRepository> mockAttendance;
+    private Mock<IAttendanceRepository> _mockAttendance;
     private Mock<IAssignmentsRepository> mockAssignments;
     private RatingCalculator _calculator;
 
@@ -22,10 +22,10 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
         MaxAttendanceScore = 15
       };
 
-      mockAttendance = new Mock<IAttendanceRepository>();
+      _mockAttendance = new Mock<IAttendanceRepository>();
 
       mockAssignments = new Mock<IAssignmentsRepository>();
-      _calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
+      _calculator = new RatingCalculator(_mockAttendance.Object, mockAssignments.Object);
     }
 
     [TestCase(20, 30, 13.5)]
@@ -38,7 +38,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       int attended = (int)((attendancePercent / 100) * _course.TotalClasses);
 
       _ = mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(attended);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, _course);
 

@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
@@ -16,18 +16,18 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
         MaxAttendanceScore = 20
       };
 
-      Mock<IAttendanceRepository> _mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
-      Mock<IAssignmentsRepository> _mockAssignments = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
+      Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
+      Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
 
-      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(30);
-      _ = _mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(30);
+      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000);
 
-      RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
       _ = calculator.CalculateCurrentScore(student, course);
 
-      _mockAttendance.Verify(r => r.GetAttendedClasses(student, course), Times.Once);
-      _mockAssignments.Verify(r => r.GetRawScore(student, course), Times.Once);
+      mockAttendance.Verify(r => r.GetAttendedClasses(student, course), Times.Once);
+      mockAssignments.Verify(r => r.GetRawScore(student, course), Times.Once);
     }
   }
 }

@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
@@ -39,14 +39,13 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
         MaxAttendanceScore = 20
       };
 
-      Mock<IAttendanceRepository> _mockAttendance = new Mock<IAttendanceRepository>();
-      Mock<IAssignmentsRepository> _mockAssignments = new Mock<IAssignmentsRepository>();
+      Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
+      Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
 
-      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns((int?)null);
-      _ = _mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns((int?)null);
+      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000);
 
-      RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
-
+      RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
       double result = calculator.CalculateCurrentScore(student, course);
 

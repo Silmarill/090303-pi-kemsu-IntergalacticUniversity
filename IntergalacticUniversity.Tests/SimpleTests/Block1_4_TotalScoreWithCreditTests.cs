@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
@@ -43,7 +43,7 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
       double result = _calculator.CalculateTotalScore(_student, _course, examOrCreditScore: 20);
 
-      Assert.That(result, Is.EqualTo(95.0).Within(0.001).Within(0.001));
+      Assert.That(result, Is.EqualTo(95.0).Within(0.001));
     }
   }
 }
