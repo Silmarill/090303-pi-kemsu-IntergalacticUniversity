@@ -1,15 +1,15 @@
-using Moq;
-using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
   public class AssignmentsPortionTests {
-    private Mock<IAttendanceRepository> _attendanceMock;
-    private Mock<IAssignmentsRepository> _assignmentsMock;
-    private RatingCalculator _calculator;
-    private Student _testStudent;
+    private Mock<IAttendanceRepository> _attendanceMock = null!;
+    private Mock<IAssignmentsRepository> _assignmentsMock = null!;
+    private RatingCalculator _calculator = null!;
+    private Student _testStudent = null!;
 
     [SetUp]
     public void SetUp() {

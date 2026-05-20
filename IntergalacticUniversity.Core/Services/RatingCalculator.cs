@@ -1,19 +1,19 @@
-﻿using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 
 namespace IntergalacticUniversity.Core.Services {
   public class RatingCalculator {
     private readonly IAttendanceRepository _attendanceRepo;
     private readonly IAssignmentsRepository _assignmentsRepo;
 
-    public RatingCalculator(IAttendanceRepository attendanceRepo,
-                            IAssignmentsRepository assignmentsRepo) {
+    public RatingCalculator(
+        IAttendanceRepository attendanceRepo,
+        IAssignmentsRepository assignmentsRepo) {
       _attendanceRepo = attendanceRepo;
       _assignmentsRepo = assignmentsRepo;
     }
 
     public double CalculateCurrentScore(Student student, Course course) {
-
       int maxCurrent = 80;
       if (course.Type == ExamType.Exam) {
         maxCurrent = 60;

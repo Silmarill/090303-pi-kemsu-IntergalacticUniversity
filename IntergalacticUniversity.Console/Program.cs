@@ -1,5 +1,5 @@
-﻿using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 
 namespace IntergalacticUniversity {
@@ -76,7 +76,7 @@ namespace IntergalacticUniversity {
       Console.WriteLine($"Курс: {course.Name} ({course.Type})");
       Console.WriteLine($"Посещаемость: {attended} / {totalClasses} ({100.0 * attended / totalClasses:F1}% = {1.0 * attended / totalClasses * maxAttendance:F0} баллов из {maxAttendance})");
 
-      //   double rawPercent = maxRaw > 0 ? (rawScore / maxRaw) * 100 : 0;
+      // double rawPercent = maxRaw > 0 ? (rawScore / maxRaw) * 100 : 0;
       double rawPercent = 0;
       if (maxRaw > 0) {
         rawPercent = rawScore / maxRaw * 100;
