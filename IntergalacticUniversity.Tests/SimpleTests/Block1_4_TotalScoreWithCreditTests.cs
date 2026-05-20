@@ -8,8 +8,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
   public class Block1_4_TotalScoreWithCreditTests {
     private Student _student;
     private Course _course;
-    private Mock<IAttendanceRepository> _mockAttendance;
-    private Mock<IAssignmentsRepository> _mockAssignments;
+    private Mock<IAttendanceRepository> mockAttendance;
+    private Mock<IAssignmentsRepository> mockAssignments;
     private RatingCalculator _calculator;
 
     [SetUp]
@@ -22,28 +22,28 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 10
       };
 
-      _mockAttendance = new Mock<IAttendanceRepository>();
-      _mockAssignments = new Mock<IAssignmentsRepository>();
-      _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      mockAttendance = new Mock<IAttendanceRepository>();
+      mockAssignments = new Mock<IAssignmentsRepository>();
+      _calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
     }
 
     [TearDown]
     public void TearDown() {
-      _student = null;
-      _course = null;
-      _mockAttendance = null;
-      _mockAssignments = null;
-      _calculator = null;
+      _student = null!;
+      _course = null!;
+      mockAttendance = null!;
+      mockAssignments = null!;
+      _calculator = null!;
     }
 
     [Test]
     public void CalculateTotalScore_ForCreditCourse_AddsCreditCorrectly() {
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(92.8571428571);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
+      _ = mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(92.8571428571);
 
       double result = _calculator.CalculateTotalScore(_student, _course, examOrCreditScore: 20);
 
-      Assert.That(result, Is.EqualTo(95.0).Within(0.001));
+      Assert.That(result, Is.EqualTo(95.0).Within(0.001).Within(0.001));
     }
   }
 }

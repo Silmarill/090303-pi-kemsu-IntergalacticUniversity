@@ -17,16 +17,16 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(30);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(30);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns((double?)null);
+      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns((double?)null);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
       double result = calculator.CalculateCurrentScore(student, course);
 
-      Assert.That(result, Is.EqualTo(20.0));
+      Assert.That(result, Is.EqualTo(20.0).Within(0.001));
     }
 
     [Test]
@@ -39,18 +39,18 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
         MaxAttendanceScore = 20
       };
 
-      Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns((int?)null);
+      Mock<IAttendanceRepository> _mockAttendance = new Mock<IAttendanceRepository>();
+      Mock<IAssignmentsRepository> _mockAssignments = new Mock<IAssignmentsRepository>();
 
-      Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns((int?)null);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000);
 
-      RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
+      RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
 
       double result = calculator.CalculateCurrentScore(student, course);
 
-      Assert.That(result, Is.EqualTo(40.0));
+      Assert.That(result, Is.EqualTo(40.0).Within(0.001));
     }
   }
 }

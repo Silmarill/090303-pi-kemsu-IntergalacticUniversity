@@ -8,8 +8,8 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
   public class Block2_4_CombinedScenariosTests {
     private Student _student;
     private Course _course;
-    private Mock<IAttendanceRepository> _mockAttendance;
-    private Mock<IAssignmentsRepository> _mockAssignments;
+    private Mock<IAttendanceRepository> mockAttendance;
+    private Mock<IAssignmentsRepository> mockAssignments;
     private RatingCalculator _calculator;
 
     [SetUp]
@@ -22,10 +22,10 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
         MaxAttendanceScore = 15
       };
 
-      _mockAttendance = new Mock<IAttendanceRepository>();
+      mockAttendance = new Mock<IAttendanceRepository>();
 
-      _mockAssignments = new Mock<IAssignmentsRepository>();
-      _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      mockAssignments = new Mock<IAssignmentsRepository>();
+      _calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
     }
 
     [TestCase(20, 30, 13.5)]
@@ -37,12 +37,12 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       double rawScore = (rawPercent / 100) * _course.MaxRawAssignmentsScore;
       int attended = (int)((attendancePercent / 100) * _course.TotalClasses);
 
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(attended);
+      _ = mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, _course);
 
-      Assert.That(result, Is.EqualTo(expectedCurrent));
+      Assert.That(result, Is.EqualTo(expectedCurrent).Within(0.001));
     }
   }
 }

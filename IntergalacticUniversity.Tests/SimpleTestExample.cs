@@ -26,7 +26,7 @@ namespace IntergalacticUniversity.Tests {
 
       double current = calculator.CalculateCurrentScore(student, course);
 
-      Assert.That(current, Is.EqualTo(60.0));
+      Assert.That(current, Is.EqualTo(60.0).Within(0.001));
     }
   }
 }

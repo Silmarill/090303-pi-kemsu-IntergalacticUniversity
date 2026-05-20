@@ -19,11 +19,13 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
 
-      mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Throws(new TimeoutException("Database timeout"));
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Throws(new TimeoutException("Database timeout"));
+
+      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
-      Assert.Throws<TimeoutException>(() => calculator.CalculateCurrentScore(student, course));
+      _ = Assert.Throws<TimeoutException>(() => calculator.CalculateCurrentScore(student, course));
     }
   }
 }
