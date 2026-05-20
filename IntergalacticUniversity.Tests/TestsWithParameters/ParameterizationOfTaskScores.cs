@@ -6,6 +6,7 @@ using IntergalacticUniversity.Core.Services;
 using Moq;
 
 namespace IntergalacticUniversity.Tests.TestsWithParameters {
+  [TestFixture]
   public class ParameterizationOfTaskScores {
     private RatingCalculator _calculator;
     private Mock<IAttendanceRepository> _mockAttendance;
@@ -35,14 +36,14 @@ namespace IntergalacticUniversity.Tests.TestsWithParameters {
     [TestCase(0, 0)]
     [TestCase(300, 12)]
     [TestCase(1000, 40)]
-    public void TaskScore(int rawScore, int expectedAssignmentsScore) {
+    public void TaskScore(double rawScore, double expectedAssignmentsScore) {
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
 
       double current = _calculator.CalculateCurrentScore(_student, _course);
 
-      double actualAssignmentsScore = current - 20;
+      double actualAssignmentsScore = current - _course.MaxAttendanceScore;
 
-      Assert.That(actualAssignmentsScore, Is.EqualTo(expectedAssignmentsScore));
+      Assert.That(actualAssignmentsScore, Is.EqualTo(expectedAssignmentsScore).Within(0.001));
     }
   }
 }

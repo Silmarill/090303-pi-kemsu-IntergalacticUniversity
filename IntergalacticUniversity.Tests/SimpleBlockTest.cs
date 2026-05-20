@@ -34,7 +34,7 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void NullTest() {
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns((int?)null);
-      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns((int?)null);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns((double?)null);
 
       double current = _calculator.CalculateCurrentScore(_student, _course);
 
@@ -70,6 +70,7 @@ namespace IntergalacticUniversity.Tests {
       Assert.That(current, Is.EqualTo(Math.Min(current, 80)));
     }
 
+    [Test]
     public void CorrectAddition() {
       _course = new Course {
         Type = ExamType.Credit,

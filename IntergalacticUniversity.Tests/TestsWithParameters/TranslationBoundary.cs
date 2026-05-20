@@ -1,14 +1,20 @@
-﻿ //Сделал ИИ
+﻿//Сделал ИИ
 
+using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
+
 
 namespace IntergalacticUniversity.Tests.TestsWithParameters {
+  [TestFixture]
   public class TranslationBoundary {
     private RatingCalculator _calculator;
 
     [SetUp]
     public void SetUp() {
-      _calculator = new RatingCalculator(null, null);
+      var mockAttendance = new Mock<IAttendanceRepository>();
+      var mockAssignment = new Mock<IAssignmentsRepository>();
+      _calculator = new RatingCalculator(mockAttendance.Object, mockAssignment.Object);
     }
 
     [TestCase(49, "Неудовлетворительно")]
