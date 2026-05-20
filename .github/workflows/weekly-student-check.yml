@@ -1,13 +1,7 @@
-name: Еженедельная проверка работ (v4)
+name: Еженедельная проверка работ (v4.1, all projects no conversion)
 
 on:
   workflow_dispatch:
-    inputs:
-      branch_pattern:
-        description: 'Regex фильтр веток студентов'
-        required: false
-        default: 'group3/[^/]+'
-        type: string
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -62,14 +56,14 @@ jobs:
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
           COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          BRANCH_PATTERN: ${{ github.event.inputs.branch_pattern || 'group3/[^/]+' }}
         run: |
           $ErrorActionPreference = "Stop"
 
           $PatToken = $env:PAT_TOKEN
           $CopilotToken = $env:COPILOT_TOKEN
           $Repository = $env:REPO
-          $BranchPattern = $env:BRANCH_PATTERN
+          # Шаблон веток студентов. Меняем здесь, если в следующем потоке будет другая группа.
+          $BranchPattern = 'group3/[^/]+'
           $workspaceRoot = [System.IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
 
           if ([string]::IsNullOrWhiteSpace($PatToken)) {
