@@ -4,7 +4,7 @@ $PatToken = $env:PAT_TOKEN
 $CopilotToken = $env:COPILOT_TOKEN
 $Repository = $env:REPO
 # Шаблон веток студентов. Меняем здесь, если в следующем потоке будет другая группа.
-$BranchPattern = 'group3/[^/]+'
+$BranchPattern = 'group[1-2]/[^/]+'
 $workspaceRoot = [System.IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
 
 if ([string]::IsNullOrWhiteSpace($PatToken)) {
