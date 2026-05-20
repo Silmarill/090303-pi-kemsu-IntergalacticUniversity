@@ -6,10 +6,10 @@ using Moq;
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
   public class MinimumMaximumScenarios {
-    private Mock<IAttendanceRepository> _attendanceMock = null!;
-    private Mock<IAssignmentsRepository> _assignmentsMock = null!;
-    private RatingCalculator _calculator = null!;
-    private Student _testStudent = null!;
+    private Mock<IAttendanceRepository> _attendanceMock;
+    private Mock<IAssignmentsRepository> _assignmentsMock;
+    private RatingCalculator _calculator;
+    private Student _testStudent;
 
     [SetUp]
     public void SetUp() {

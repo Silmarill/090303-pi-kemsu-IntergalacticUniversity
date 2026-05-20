@@ -11,7 +11,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(86, "Отлично")]
     [TestCase(100, "Отлично")]
     public void ConvertToGrade_BoundaryValues_ReturnsCorrectText(double score, string expectedGrade) {
-      RatingCalculator calculator = new RatingCalculator(null!, null!);
+      RatingCalculator calculator = new RatingCalculator(null, null);
       string actualGrade = calculator.ConvertToGrade(score);
 
       Assert.That(actualGrade, Is.EqualTo(expectedGrade));
