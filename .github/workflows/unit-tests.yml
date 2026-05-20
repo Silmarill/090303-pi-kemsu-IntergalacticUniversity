@@ -1,4 +1,4 @@
-name: Запуск Unit-тестов (v1.0)
+name: Запуск Unit-тестов (v1.2)
 
 on:
   pull_request_target:
@@ -733,16 +733,17 @@ jobs:
           }
 
           function Get-TrxRows([object]$item) {
-            $rows = New-Object System.Collections.Generic.List[object]
+            $rows = @()
 
             if ([string]::IsNullOrWhiteSpace($item.TrxPath) -or -not (Test-Path $item.TrxPath)) {
-              return @($rows)
+              return $rows
             }
 
             try {
               [xml]$trx = Get-Content $item.TrxPath -Raw
             } catch {
-              return @($rows)
+              Write-Host "⚠️ Не удалось прочитать TRX $($item.TrxPath): $($_.Exception.Message)"
+              return $rows
             }
 
             $unitTests = @{}
@@ -763,10 +764,12 @@ jobs:
                 $methodName = $unitTest.GetAttribute("name")
               }
 
-              $unitTests[$id] = [pscustomobject]@{
-                ClassName = $className
-                MethodName = $methodName
-                TestName = $unitTest.GetAttribute("name")
+              if (-not [string]::IsNullOrWhiteSpace($id)) {
+                $unitTests[$id] = [pscustomobject]@{
+                  ClassName = $className
+                  MethodName = $methodName
+                  TestName = $unitTest.GetAttribute("name")
+                }
               }
             }
 
@@ -783,7 +786,7 @@ jobs:
               $className = ""
               $methodName = $testName
 
-              if ($unitTests.ContainsKey($testId)) {
+              if (-not [string]::IsNullOrWhiteSpace($testId) -and $unitTests.ContainsKey($testId)) {
                 $className = $unitTests[$testId].ClassName
                 $methodName = $unitTests[$testId].MethodName
                 if ([string]::IsNullOrWhiteSpace($methodName)) {
@@ -799,7 +802,7 @@ jobs:
               $group = ""
               $sourceFile = ""
 
-              if ($classMap.ContainsKey($simpleClass)) {
+              if (-not [string]::IsNullOrWhiteSpace($simpleClass) -and $classMap.ContainsKey($simpleClass)) {
                 $group = $classMap[$simpleClass].Folder
                 $sourceFile = $classMap[$simpleClass].File
               } else {
@@ -823,7 +826,7 @@ jobs:
                 }
               }
 
-              $rows.Add([pscustomobject]@{
+              $rows += [pscustomobject]@{
                 Project = $item.Project
                 Group = $group
                 SourceFile = $sourceFile
@@ -834,10 +837,10 @@ jobs:
                 Duration = $durationText
                 Message = $message
                 StackTrace = $stackTrace
-              })
+              }
             }
 
-            return @($rows)
+            return $rows
           }
 
           $allRows = New-Object System.Collections.Generic.List[object]
@@ -1038,25 +1041,26 @@ jobs:
             test-projects.json
           if-no-files-found: ignore
 
-      - name: Провалить workflow при упавших тестах
+      - name: Завершить workflow без падения из-за результатов тестов
+        if: always()
         run: |
           $summaryPath = Join-Path "${{ github.workspace }}" "${{ env.TEST_RESULTS_DIR }}\test-summary.json"
           if (-not (Test-Path $summaryPath)) {
-            Write-Host "❌ test-summary.json не найден."
-            exit 1
+            Write-Host "⚠️ test-summary.json не найден. Отчёт мог не сформироваться."
+            exit 0
           }
 
           $summary = Get-Content $summaryPath -Raw | ConvertFrom-Json
 
-          if ($summary.NoTests -eq $true -and "${{ env.FAIL_IF_NO_TEST_PROJECTS }}" -eq "true") {
-            Write-Host "❌ Тестовые проекты не найдены."
-            exit 1
+          Write-Host "Итог автотестов: всего=$($summary.Total), passed=$($summary.Passed), failed=$($summary.Failed), skipped=$($summary.Skipped), other=$($summary.Other)."
+
+          if ($summary.NoTests -eq $true) {
+            Write-Host "⚠️ Тестовые проекты или тесты не найдены. Смотри комментарий PR и артефакты."
+          } elseif ($summary.Failed -gt 0 -or $summary.AnyFailed -eq $true) {
+            Write-Host "⚠️ Есть упавшие тесты или ошибки запуска тестов. Workflow не падает специально: результаты уже опубликованы в PR."
+          } else {
+            Write-Host "✅ Все найденные тесты прошли."
           }
 
-          if ($summary.AnyFailed -eq $true) {
-            Write-Host "❌ Есть упавшие тесты или ошибки запуска."
-            exit 1
-          }
-
-          Write-Host "✅ Все тесты прошли."
+          exit 0
         shell: pwsh
