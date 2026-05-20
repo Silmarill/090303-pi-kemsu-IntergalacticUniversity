@@ -7,7 +7,7 @@ namespace IntergalacticUniversity.Tests {
 
     [SetUp]
     public void SetUp() {
-      _calculator = new RatingCalculator(null!, null!);
+      _calculator = new RatingCalculator(null, null);
     }
 
     [TestCase(49, "Неудовлетворительно")]

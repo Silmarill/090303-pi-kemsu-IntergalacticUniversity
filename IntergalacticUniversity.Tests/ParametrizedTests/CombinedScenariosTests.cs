@@ -5,7 +5,7 @@ using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
-  public class CombinedScenarioTests {
+  public class CombinedScenariosTests {
     private Student _student = null!;
     private Course _examCourse = null!;
     private Mock<IAttendanceRepository> _mockAttendance = null!;
