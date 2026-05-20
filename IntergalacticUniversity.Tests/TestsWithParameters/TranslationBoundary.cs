@@ -1,10 +1,6 @@
-﻿//Сделал ИИ
+﻿ //Сделал ИИ
 
 using IntergalacticUniversity.Core.Services;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IntergalacticUniversity.Tests.TestsWithParameters {
   public class TranslationBoundary {

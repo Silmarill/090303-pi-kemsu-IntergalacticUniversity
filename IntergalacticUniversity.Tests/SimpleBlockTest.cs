@@ -1,11 +1,11 @@
-﻿//ИИ написал строку 49 и 52, так как я не до конца разобрался в использовании Тестов
-//ИИ помогал написать SetUp, подсказал, что там должно быть
-//ИИ подсказал, как добавить Math.Min в 72 строку
+﻿// ИИ написал строку 49 и 52, так как я не до конца разобрался в использовании Тестов
+// ИИ помогал написать SetUp, подсказал, что там должно быть
+// ИИ подсказал, как добавить Math.Min в 72 строку
 
-using Moq;
-using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -31,11 +31,10 @@ namespace IntergalacticUniversity.Tests {
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
-
     [Test]
     public void NullTest() {
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns((int?)null);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns((int?)null);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns((int?)null);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns((int?)null);
 
       double current = _calculator.CalculateCurrentScore(_student, _course);
 
@@ -44,8 +43,8 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void MaxValues() {
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(800);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(800);
 
       double current = _calculator.CalculateCurrentScore(_student, _course);
       string grade = _calculator.ConvertToGrade(100);
@@ -63,11 +62,10 @@ namespace IntergalacticUniversity.Tests {
         MaxAttendanceScore = 15
       };
 
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(30);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1200);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(30);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1200);
 
       double current = _calculator.CalculateCurrentScore(_student, _course);
-
 
       Assert.That(current, Is.EqualTo(Math.Min(current, 80)));
     }
@@ -80,8 +78,8 @@ namespace IntergalacticUniversity.Tests {
         MaxAttendanceScore = 15
       };
 
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(30);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1000);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(30);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1000);
 
       double current = _calculator.CalculateCurrentScore(_student, _course);
       double total = _calculator.CalculateTotalScore(_student, _course, 20);

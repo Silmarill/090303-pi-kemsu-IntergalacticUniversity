@@ -1,4 +1,4 @@
-﻿//Почти всё сделано ИИ
+﻿// Почти всё сделано ИИ
 
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
@@ -25,7 +25,7 @@ namespace IntergalacticUniversity.Tests.TestsWithParameters {
       };
 
       _mockAttendance = new Mock<IAttendanceRepository>();
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(_course.TotalClasses);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(_course.TotalClasses);
 
       _mockAssignments = new Mock<IAssignmentsRepository>();
 
@@ -36,7 +36,7 @@ namespace IntergalacticUniversity.Tests.TestsWithParameters {
     [TestCase(300, 12)]
     [TestCase(1000, 40)]
     public void TaskScore(int rawScore, int expectedAssignmentsScore) {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
 
       double current = _calculator.CalculateCurrentScore(_student, _course);
 
