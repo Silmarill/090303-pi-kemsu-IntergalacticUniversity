@@ -1,7 +1,6 @@
 ﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
 using Moq;
-using NUnit.Framework;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
