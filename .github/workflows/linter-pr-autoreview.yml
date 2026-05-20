@@ -1,8 +1,8 @@
 name: Linter-ревью по PR (v2.3, restore IDE diagnostics)
 
 on:
-  #pull_request_target:
-    #types: [opened, synchronize, reopened]
+  pull_request_target:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       pr_number:
