@@ -32,8 +32,8 @@ namespace IntergalacticUniversity.Tests {
     [TestCase(300, 10, 30)]
     [TestCase(600, 20, 60)]
     public void CalculateCurrentScore_CombinedInputs_ReturnsExpectedCurrent(double rawScore, int attended, double expectedCurrent) {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(attended);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 

@@ -44,8 +44,8 @@ namespace IntergalacticUniversity.Tests {
       int fullAttendance = _examCourse.TotalClasses;
       double maxAttendanceScore = _examCourse.MaxAttendanceScore;
 
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(fullAttendance);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(fullAttendance);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
       double expected = expectedAssignmentsScore + maxAttendanceScore;
@@ -60,8 +60,8 @@ namespace IntergalacticUniversity.Tests {
       double fullRawScore = _creditCourse.MaxRawAssignmentsScore;
       double maxAssignments = 70.0;
 
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(fullRawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attended);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(fullRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
       double expected = maxAssignments + expectedAttendanceScore;

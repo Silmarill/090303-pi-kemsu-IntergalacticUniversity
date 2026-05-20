@@ -46,8 +46,8 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateCurrentScore_WhenNoData_ReturnsZero() {
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
@@ -61,8 +61,8 @@ namespace IntergalacticUniversity.Tests {
       double expectedCurrent = 60.0;
       double fullTotalScore = 100.0;
 
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(fullRawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(fullAttendance);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(fullRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(fullAttendance);
 
       double currentScore = _calculator.CalculateCurrentScore(_student, _examCourse);
       string grade = _calculator.ConvertToGrade(fullTotalScore);
@@ -77,8 +77,8 @@ namespace IntergalacticUniversity.Tests {
       int fullAttendance = _creditCourse.TotalClasses;
       double expectedMaxCurrent = 80.0;
 
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(exceedingRawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(fullAttendance);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(exceedingRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(fullAttendance);
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
 
@@ -95,8 +95,8 @@ namespace IntergalacticUniversity.Tests {
       double expectedCurrent = 75.0;
       double expectedTotal = 95.0;
 
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(rawFor75Current);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(fullAttendance);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(rawFor75Current);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(fullAttendance);
 
       double current = _calculator.CalculateCurrentScore(_student, _creditCourse);
       double total = _calculator.CalculateTotalScore(_student, _creditCourse, maxCreditScore);
