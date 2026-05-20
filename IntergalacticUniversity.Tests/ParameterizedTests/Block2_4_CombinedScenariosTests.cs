@@ -34,8 +34,8 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(100, 100, 60)]
     public void CalculateCurrentScore_CombinedScenarios_ReturnsCorrectScore(
             double rawPercent, double attendancePercent, double expectedCurrent) {
-      double rawScore = (rawPercent / 100) * _course.MaxRawAssignmentsScore;
-      int attended = (int)((attendancePercent / 100) * _course.TotalClasses);
+      double rawScore = rawPercent / 100 * _course.MaxRawAssignmentsScore;
+      int attended = (int)(attendancePercent / 100 * _course.TotalClasses);
 
       _ = mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(attended);
