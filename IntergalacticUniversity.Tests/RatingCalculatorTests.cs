@@ -1,6 +1,7 @@
 ﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
 using Moq;
+using NUnit.Framework;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -11,58 +12,35 @@ namespace IntergalacticUniversity.Tests {
 
     [SetUp]
     public void Setup() {
-      // Моки и калькулятор перед каждым тестом инициализируются
       _mockAttendance = new Mock<IAttendanceRepository>();
       _mockAssignments = new Mock<IAssignmentsRepository>();
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
-    [Test]
-    public void ConvertToGrade_Score86_ReturnsExcellent() {
-      // Arrange
-      double score = 86.0;
+    // Граница "Отлично" (86 - 100)
+    [TestCase(100.0, "Отлично")]
+    [TestCase(86.0, "Отлично")]
+    [TestCase(85.9, "Хорошо")]
 
+    // Граница "Хорошо" (66 - 85)
+    [TestCase(75.0, "Хорошо")]
+    [TestCase(66.0, "Хорошо")]
+    [TestCase(65.9, "Удовлетворительно")]
+
+    // Граница "Удовлетворительно" (51 - 65)
+    [TestCase(60.0, "Удовлетворительно")]
+    [TestCase(51.0, "Удовлетворительно")]
+    [TestCase(50.9, "Неудовлетворительно")]
+
+    // Граница "Неудовлетворительно" (0 - 50)
+    [TestCase(49.0, "Неудовлетворительно")]
+    [TestCase(0.0, "Неудовлетворительно")]
+    public void ConvertToGrade_BoundaryValues_ReturnsExpectedGrade(double score, string expectedGrade) {
       // Act
       string result = _calculator.ConvertToGrade(score);
 
       // Assert
-      Assert.That(result, Is.EqualTo("Отлично"));
-    }
-
-    [Test]
-    public void ConvertToGrade_Score66_ReturnsGood() {
-      // Arrange
-      double score = 66.0;
-
-      // Act
-      string result = _calculator.ConvertToGrade(score);
-
-      // Assert
-      Assert.That(result, Is.EqualTo("Хорошо"));
-    }
-
-    [Test]
-    public void ConvertToGrade_Score51_ReturnsSatisfactory() {
-      // Arrange
-      double score = 51.0;
-
-      // Act
-      string result = _calculator.ConvertToGrade(score);
-
-      // Assert
-      Assert.That(result, Is.EqualTo("Удовлетворительно"));
-    }
-
-    [Test]
-    public void ConvertToGrade_Score50_ReturnsUnsatisfactory() {
-      // Arrange
-      double score = 50.0;
-
-      // Act
-      string result = _calculator.ConvertToGrade(score);
-
-      // Assert
-      Assert.That(result, Is.EqualTo("Неудовлетворительно"));
+      Assert.That(result, Is.EqualTo(expectedGrade));
     }
   }
 }
