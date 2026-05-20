@@ -93,9 +93,6 @@ function Add-OrUpdateLastCommitComment([int]$prNumber, [string]$branch) {
     $shortHash = (git rev-parse --short=12 "origin/$branch").Trim()
     $commitIso = (git log -1 --format=%cI "origin/$branch").Trim()
     $commitSubject = (git log -1 --format=%s "origin/$branch").Trim()
-    $authorName = (git log -1 --format=%an "origin/$branch").Trim()
-    $authorEmail = (git log -1 --format=%ae "origin/$branch").Trim()
-
     $kemerovoCommitTimeText = ConvertTo-KemerovoTimeText $commitIso
     $commitUrl = "https://github.com/$Repository/commit/$fullHash"
     $historyUrl = Get-GitHubBranchHistoryUrl $branch
@@ -120,17 +117,17 @@ function Add-OrUpdateLastCommitComment([int]$prNumber, [string]$branch) {
     $body = @"
 ## 🕒 Последний коммит и push ветки
 
-Этот комментарий помогает проверить, не появились ли новые изменения после дедлайна.
+Данные о последних изменениях.
 
 - **Ветка:** ``$branch``
 - **Последний коммит:** [``$shortHash``]($commitUrl)
 - **Полный хеш:** ``$fullHash``
 - **Дата последнего коммита:** $kemerovoCommitTimeText
-$pushInfoBlock
-- **Часовой пояс:** Кемерово, UTC+07:00 / Asia/Novokuznetsk
-- **Автор коммита:** $authorName <$authorEmail>
 - **Сообщение коммита:** $commitSubject
 - **История коммитов ветки:** [открыть в GitHub]($historyUrl)
+
+$pushInfoBlock
+- **Часовой пояс:** Кемерово, UTC+07:00 / Asia/Novokuznetsk
 "@
 
     Add-OrUpdatePrComment $prNumber $marker $body
