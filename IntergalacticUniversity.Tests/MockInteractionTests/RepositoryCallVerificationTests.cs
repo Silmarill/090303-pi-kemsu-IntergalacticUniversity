@@ -10,7 +10,6 @@ namespace IntergalacticUniversity.Tests {
     private Course _course = null!;
     private Mock<IAttendanceRepository> _mockAttendance = null!;
     private Mock<IAssignmentsRepository> _mockAssignments = null!;
-    private RatingCalculator _calculator = null!;
 
     [SetUp]
     public void SetUp() {
@@ -34,9 +33,9 @@ namespace IntergalacticUniversity.Tests {
 
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(halfAttendance);
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(halfRawScore);
-      _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      _ = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      _ = calculator.CalculateCurrentScore(_student, _course);
 
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
@@ -46,13 +45,12 @@ namespace IntergalacticUniversity.Tests {
     public void CalculateTotalScore_CallsRepositoriesOnlyOnce() {
       int fullAttendance = _course.TotalClasses;
       double fullRawScore = _course.MaxRawAssignmentsScore;
-      double examScore = 30.0;
 
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(fullAttendance);
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(fullRawScore);
-      _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      _ = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      _ = calculator.CalculateTotalScore(_student, _course, 30.0);
 
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);

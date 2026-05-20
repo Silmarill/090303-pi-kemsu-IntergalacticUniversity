@@ -10,7 +10,6 @@ namespace IntergalacticUniversity.Tests {
     private Course _course = null!;
     private Mock<IAttendanceRepository> _mockAttendance = null!;
     private Mock<IAssignmentsRepository> _mockAssignments = null!;
-    private RatingCalculator _calculator = null!;
 
     [SetUp]
     public void SetUp() {
@@ -33,9 +32,8 @@ namespace IntergalacticUniversity.Tests {
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Throws<TimeoutException>();
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(fullAttendance);
-      _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      _ = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      _ = Assert.Throws<TimeoutException>(() => new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object).CalculateCurrentScore(_student, _course));
     }
   }
 }
