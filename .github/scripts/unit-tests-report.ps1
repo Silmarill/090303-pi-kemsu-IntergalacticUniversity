@@ -753,8 +753,13 @@ switch ($Mode) {
         }
 
         $simpleClass = $className
-        if ($simpleClass -match '\.([^.]+)$') {
-          $simpleClass = $Matches[1]
+        $namespaceName = ""
+        if (-not [string]::IsNullOrWhiteSpace($className)) {
+          $lastDotIndex = $className.LastIndexOf('.')
+          if ($lastDotIndex -ge 0) {
+            $namespaceName = $className.Substring(0, $lastDotIndex)
+            $simpleClass = $className.Substring($lastDotIndex + 1)
+          }
         }
 
         $group = ""
@@ -788,7 +793,9 @@ switch ($Mode) {
           Project = $item.Project
           Group = $group
           SourceFile = $sourceFile
+          Namespace = $namespaceName
           ClassName = $className
+          SimpleClassName = $simpleClass
           MethodName = $methodName
           TestName = $testName
           Outcome = $outcome
@@ -839,8 +846,8 @@ switch ($Mode) {
         Sort-Object Project
     )
 
-    $failedRows = @($allRows | Where-Object { $_.Outcome -eq "Failed" } | Sort-Object Project, Group, ClassName, MethodName)
-    $allRowsSorted = @($allRows | Sort-Object Project, Group, ClassName, MethodName)
+    $failedRows = @($allRows | Where-Object { $_.Outcome -eq "Failed" } | Sort-Object Project, Group, Namespace, SimpleClassName, MethodName)
+    $allRowsSorted = @($allRows | Sort-Object Namespace, SimpleClassName, MethodName)
 
     $lines = New-Object System.Collections.Generic.List[string]
     $lines.Add("$TestReportMarker")
@@ -901,29 +908,41 @@ switch ($Mode) {
     }
 
     if ($allRowsSorted.Count -gt 0) {
-      $lines.Add("<details>")
-      $lines.Add("<summary>Все найденные тесты ($($allRowsSorted.Count))</summary>")
-      $lines.Add("")
-      $lines.Add("| Результат | Класс | Метод | Длительность |")
-      $lines.Add("|---|---|---|---:|")
+      $namespaceGroups = @($allRowsSorted | Group-Object Namespace | Sort-Object Name)
 
-      foreach ($row in ($allRowsSorted | Select-Object -First 200)) {
-        $icon = switch ($row.Outcome) {
-          "Passed" { "✅" }
-          "Failed" { "❌" }
-          default { "⚠️" }
+      foreach ($namespaceGroup in $namespaceGroups) {
+        $namespaceTitle = $namespaceGroup.Name
+        if ([string]::IsNullOrWhiteSpace($namespaceTitle)) {
+          $namespaceTitle = "без namespace"
         }
 
-        $lines.Add("| $icon $($row.Outcome) | $(Escape-MarkdownTable $row.ClassName) | $(Escape-MarkdownTable $row.MethodName) | $(Escape-MarkdownTable $row.Duration) |")
-      }
+        $namespaceRows = @($namespaceGroup.Group | Sort-Object SimpleClassName, MethodName)
 
-      if ($allRowsSorted.Count -gt 200) {
-        $lines.Add("| … | … | … | … |")
-      }
+        $lines.Add("<details>")
+        $lines.Add("<summary>Все найденные тесты ($($namespaceRows.Count)) в $(Escape-MarkdownTable $namespaceTitle)</summary>")
+        $lines.Add("")
+        $lines.Add("| # | Метод | Длительность | Класс |")
+        $lines.Add("|---:|---|---:|---|")
 
-      $lines.Add("")
-      $lines.Add("</details>")
-      $lines.Add("")
+        $index = 1
+        foreach ($row in ($namespaceRows | Select-Object -First 200)) {
+          $simpleClass = $row.SimpleClassName
+          if ([string]::IsNullOrWhiteSpace($simpleClass)) {
+            $simpleClass = $row.ClassName
+          }
+
+          $lines.Add("| $index | $(Escape-MarkdownTable $row.MethodName) | $(Escape-MarkdownTable $row.Duration) | $(Escape-MarkdownTable $simpleClass) |")
+          $index++
+        }
+
+        if ($namespaceRows.Count -gt 200) {
+          $lines.Add("| … | … | … | … |")
+        }
+
+        $lines.Add("")
+        $lines.Add("</details>")
+        $lines.Add("")
+      }
     }
 
     $lines.Add("_Отчёт сформирован автоматически из `.trx` результатов._")
