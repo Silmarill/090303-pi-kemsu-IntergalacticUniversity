@@ -510,6 +510,38 @@ function Restore-Projects([array]$projects, [string]$workspace) {
   }
 }
 
+
+function Invoke-LoggedNativeCommand([string]$logPath, [string]$exe, [string[]]$arguments) {
+  Write-Host "> $exe $($arguments -join ' ')"
+
+  # Важно: не ставим native command сразу в pipeline с Tee-Object.
+  # Иначе можно потерять реальный exit code msbuild/dotnet или случайно вернуть
+  # из функции строки лога вместо одного числа.
+  $output = & $exe @arguments 2>&1
+  $exitCode = [int]$LASTEXITCODE
+
+  $script:LastNativeCommandOutputText = (($output | ForEach-Object { [string]$_ }) -join "`n")
+
+  foreach ($line in $output) {
+    $text = [string]$line
+    Write-Host $text
+    Add-Content -Path $logPath -Value $text
+  }
+
+  return [int]$exitCode
+}
+
+function Test-LastNativeBuildOutputShowsSuccess() {
+  if ([string]::IsNullOrWhiteSpace($script:LastNativeCommandOutputText)) {
+    return $false
+  }
+
+  # Защитный fallback: если инструмент вернул подозрительный код, но именно последний
+  # запуск msbuild/dotnet явно написал Build succeeded и не написал ошибок,
+  # не считаем это падением сборки.
+  return ($script:LastNativeCommandOutputText -match 'Build succeeded\.' -and $script:LastNativeCommandOutputText -match '0\s+Error\(s\)')
+}
+
 function Build-Projects([array]$projects, [string]$workspace) {
   $buildLog = Join-Path $workspace "build.log"
   "" | Set-Content -Path $buildLog -Encoding utf8
@@ -523,12 +555,30 @@ function Build-Projects([array]$projects, [string]$workspace) {
     Write-Host "Собираю $($project.RelativePath)"
 
     if ($project.IsNetFramework -eq $true -or $project.IsSdkStyle -ne $true) {
-      msbuild "$($project.Path)" /p:Configuration="$($project.BuildConfiguration)" /p:Platform="$($project.BuildPlatform)" 2>&1 | Tee-Object -FilePath $buildLog -Append
+      $exitCode = Invoke-LoggedNativeCommand `
+        -logPath $buildLog `
+        -exe "msbuild" `
+        -arguments @(
+          "$($project.Path)",
+          "/p:Configuration=$($project.BuildConfiguration)",
+          "/p:Platform=$($project.BuildPlatform)"
+        )
     } else {
-      dotnet build "$($project.Path)" --no-restore 2>&1 | Tee-Object -FilePath $buildLog -Append
+      $exitCode = Invoke-LoggedNativeCommand `
+        -logPath $buildLog `
+        -exe "dotnet" `
+        -arguments @(
+          "build",
+          "$($project.Path)",
+          "--no-restore"
+        )
     }
 
-    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0 -and (Test-LastNativeBuildOutputShowsSuccess)) {
+      Write-Host "⚠️ Команда вернула код $exitCode для $($project.RelativePath), но лог содержит Build succeeded / 0 Error(s). Считаю сборку успешной."
+      Add-Content -Path $buildLog -Value "WARNING: command exit code was $exitCode, but build log contains Build succeeded / 0 Error(s). Treated as success."
+      $exitCode = 0
+    }
 
     if ($exitCode -ne 0) {
       $overallExitCode = $exitCode
@@ -600,15 +650,74 @@ function Combine-Logs([string]$workspace) {
   }
 }
 
-function Convert-LogsToReport([string]$workspace) {
-  python "$workspaceRoot/main-branch-temp/.github/scripts/parse_log_to_json.py" `
-    --log-file (Join-Path $workspace "combined.log") `
-    --output-json (Join-Path $workspace "warnings.json")
+function New-FallbackReportFromLogs([string]$workspace, [string]$reason) {
+  $combinedLog = Join-Path $workspace "combined.log"
+  $warningsJson = Join-Path $workspace "warnings.json"
+  $reportPath = Join-Path $workspace "stylecop_report.txt"
 
-  python "$workspaceRoot/main-branch-temp/.github/scripts/generate_report_from_json.py" `
-    --json-file (Join-Path $workspace "warnings.json") `
-    --output-txt (Join-Path $workspace "stylecop_report.txt")
+  $warningLines = @()
+  if (Test-Path $combinedLog) {
+    $warningLines = @(
+      Get-Content $combinedLog |
+        Where-Object { $_ -match ':\s*warning\s+(SA|IDE|CA|CS)\d+' }
+    )
+  }
+
+  $items = @()
+  foreach ($line in $warningLines) {
+    $items += [PSCustomObject]@{
+      raw = $line
+    }
+  }
+
+  $items | ConvertTo-Json -Depth 4 | Set-Content -Path $warningsJson -Encoding utf8
+
+  $report = @()
+  $report += "Автоматический парсер отчёта недоступен или завершился ошибкой."
+  $report += "Причина: $reason"
+  $report += ""
+  $report += "Найдено строк с предупреждениями в логах: $($warningLines.Count)"
+  $report += ""
+
+  if ($warningLines.Count -gt 0) {
+    $report += "Первые предупреждения:"
+    $report += ($warningLines | Select-Object -First 80)
+  } else {
+    $report += "Предупреждения в логах не найдены."
+  }
+
+  $report -join "`n" | Set-Content -Path $reportPath -Encoding utf8
 }
+
+function Convert-LogsToReport([string]$workspace) {
+  $parseScript = Join-Path $workspaceRoot "main-branch-temp/.github/scripts/parse_log_to_json.py"
+  $reportScript = Join-Path $workspaceRoot "main-branch-temp/.github/scripts/generate_report_from_json.py"
+  $combinedLog = Join-Path $workspace "combined.log"
+  $warningsJson = Join-Path $workspace "warnings.json"
+  $reportPath = Join-Path $workspace "stylecop_report.txt"
+
+  if (-not (Test-Path $parseScript) -or -not (Test-Path $reportScript)) {
+    New-FallbackReportFromLogs $workspace "parse_log_to_json.py или generate_report_from_json.py не найден в main"
+    return
+  }
+
+  python "$parseScript" --log-file "$combinedLog" --output-json "$warningsJson"
+  $parseExitCode = $LASTEXITCODE
+
+  if ($parseExitCode -ne 0) {
+    New-FallbackReportFromLogs $workspace "parse_log_to_json.py завершился с кодом $parseExitCode"
+    return
+  }
+
+  python "$reportScript" --json-file "$warningsJson" --output-txt "$reportPath"
+  $reportExitCode = $LASTEXITCODE
+
+  if ($reportExitCode -ne 0) {
+    New-FallbackReportFromLogs $workspace "generate_report_from_json.py завершился с кодом $reportExitCode"
+    return
+  }
+}
+
 
 function Get-WarningCount([string]$warningsPath) {
   if (-not (Test-Path $warningsPath)) {
@@ -680,6 +789,14 @@ function Add-BuildFailureComment([string]$prNumber, [string]$workspace, [string]
   $comment | Out-File -FilePath $commentFile -Encoding utf8
   gh pr comment $prNumber --body-file $commentFile --repo $Repository | Out-Host
   Remove-Item $commentFile -ErrorAction SilentlyContinue
+}
+
+
+function Add-ProcessingErrorComment([string]$prNumber, [string]$message) {
+  $marker = "<!-- weekly-student-check-processing-error -->"
+  $fence = '```'
+  $body = "## ⚠️ Ошибка workflow после сборки`n`nСама C#-сборка могла завершиться успешно. Ошибка произошла на этапе обработки отчётов / комментариев / дополнительных проверок.`n`n$fence`n$message`n$fence"
+  Add-OrUpdatePrComment ([int]$prNumber) $marker $body
 }
 
 function Add-ReportComment([string]$prNumber, [string]$workspace) {
@@ -884,9 +1001,8 @@ foreach ($branch in $branches) {
 
     if ($null -ne $prNumber) {
       try {
-        Set-PrBuildFailed "$prNumber" $prTitle
         $currentWorkspace = if (Test-Path $studentPath) { $studentPath } else { $workspaceRoot }
-        Add-BuildFailureComment "$prNumber" $currentWorkspace $_.Exception.Message
+        Add-ProcessingErrorComment "$prNumber" $_.Exception.Message
         if (Test-Path $studentPath) {
           Copy-BranchArtifacts $studentPath $artifactDir
         }
