@@ -70,7 +70,12 @@ namespace IntergalacticUniversity {
       Console.WriteLine("\n========================================");
       Console.WriteLine($"Студент: {student.Name}");
       Console.WriteLine($"Курс: {course.Name} ({course.Type})");
-      Console.WriteLine($"Посещаемость: {attended} / {totalClasses} ({100.0 * attended / totalClasses:F1}% = {1.0 * attended / totalClasses * maxAttendance:F0} баллов из {maxAttendance})");
+
+      if (totalClasses > 0) {
+        Console.WriteLine($"Посещаемость: {attended} / {totalClasses} ({100.0 * attended / totalClasses:F1}% = {1.0 * attended / totalClasses * maxAttendance:F0} баллов из {maxAttendance})");
+      } else {
+        Console.WriteLine($"Посещаемость: {attended} / 0 (0% = 0 баллов из {maxAttendance})");
+      }
 
       double rawPercent = 0;
       if (maxRaw > 0) {
@@ -78,7 +83,12 @@ namespace IntergalacticUniversity {
       }
 
       Console.WriteLine($"Посещаемость занимает {maxAttendance} баллов из {currentMaxScore}. На задания остается {currentMaxScore - maxAttendance:F0}");
-      Console.WriteLine($"Баллы за задания: {rawScore} / {maxRaw} ({rawPercent:F1}% = {1.0 * rawScore / maxRaw * (currentMaxScore - maxAttendance):F0} баллов из {currentMaxScore - maxAttendance})");
+      if (maxRaw > 0) {
+        Console.WriteLine($"Баллы за задания: {rawScore} / {maxRaw} ({rawPercent:F1}% = {1.0 * rawScore / maxRaw * (currentMaxScore - maxAttendance):F0} баллов из {currentMaxScore - maxAttendance})");
+      } else {
+        Console.WriteLine($"Баллы за задания: {rawScore} / 0 (0% = 0 баллов из {currentMaxScore - maxAttendance})");
+      }
+
       Console.WriteLine($"Текущая успеваемость: {currentScore:F0} из {currentMaxScore}");
       Console.WriteLine($"Итого за промежуточную аттестацию: {examScore} из {challengeMaxScore}");
 

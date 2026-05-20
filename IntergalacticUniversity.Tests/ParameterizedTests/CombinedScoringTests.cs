@@ -5,18 +5,17 @@ using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
-  public class TestCaseExample {
-    [TestCase(0, 0, 0, 0)]
-    [TestCase(500, 15, 20, 10)]
-    [TestCase(1000, 30, 40, 20)]
-    public void CalculateCurrentScore_VariousInputs_ReturnsExpected(
-        double rawScore, int attended, double expectedAssignments, double expectedAttendance) {
+  public class CombinedScoringTests {
+    [TestCase(0, 0, 0)]
+    [TestCase(300, 10, 30)]
+    [TestCase(600, 20, 60)]
+    public void CalculateCurrentScore_CombinedPercentages_ReturnsExpectedCurrent(double rawScore, int attended, double expectedCurrent) {
       Student student = new Student { Id = 1 };
       Course course = new Course {
         Type = ExamType.Exam,
-        MaxRawAssignmentsScore = 1000,
-        TotalClasses = 30,
-        MaxAttendanceScore = 20
+        MaxRawAssignmentsScore = 600,
+        TotalClasses = 20,
+        MaxAttendanceScore = 15
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
@@ -29,8 +28,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
 
       double result = calculator.CalculateCurrentScore(student, course);
 
-      double expectedTotal = expectedAssignments + expectedAttendance;
-      Assert.That(result, Is.EqualTo(expectedTotal));
+      Assert.That(result, Is.EqualTo(expectedCurrent));
     }
   }
 }

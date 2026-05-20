@@ -5,12 +5,11 @@ using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
-  public class TestCaseExample {
-    [TestCase(0, 0, 0, 0)]
-    [TestCase(500, 15, 20, 10)]
-    [TestCase(1000, 30, 40, 20)]
-    public void CalculateCurrentScore_VariousInputs_ReturnsExpected(
-        double rawScore, int attended, double expectedAssignments, double expectedAttendance) {
+  public class AssignmentsScoringTests {
+    [TestCase(0, 0)]
+    [TestCase(300, 12)]
+    [TestCase(1000, 40)]
+    public void CalculateCurrentScore_VariousRawScores_ReturnsExpectedAssignmentsScore(double rawScore, double expectedAssignmentsScore) {
       Student student = new Student { Id = 1 };
       Course course = new Course {
         Type = ExamType.Exam,
@@ -20,7 +19,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attended);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(30);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
       _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScore);
@@ -29,8 +28,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
 
       double result = calculator.CalculateCurrentScore(student, course);
 
-      double expectedTotal = expectedAssignments + expectedAttendance;
-      Assert.That(result, Is.EqualTo(expectedTotal));
+      Assert.That(result, Is.EqualTo(expectedAssignmentsScore + 20.0).Within(0.001));
     }
   }
 }

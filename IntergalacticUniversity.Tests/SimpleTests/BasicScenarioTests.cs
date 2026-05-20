@@ -33,7 +33,7 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
       double result = _calculator.CalculateCurrentScore(_student, course);
 
-      Assert.That(result, Is.EqualTo(0.0));
+      Assert.That(result, Is.EqualTo(0.0).Within(0.001));
     }
 
     [Test]

@@ -50,7 +50,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionsTests {
 
       double result = calculator.CalculateCurrentScore(student, course);
 
-      Assert.That(result, Is.EqualTo(20.0));
+      Assert.That(result, Is.EqualTo(20.0).Within(0.001));
     }
 
     [Test]
