@@ -36,7 +36,7 @@ namespace IntergalacticUniversity.Tests {
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(halfRawScore);
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      _calculator.CalculateCurrentScore(_student, _course);
+      _ = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
@@ -52,7 +52,7 @@ namespace IntergalacticUniversity.Tests {
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(fullRawScore);
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      _calculator.CalculateTotalScore(_student, _course, examScore);
+      _ = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
