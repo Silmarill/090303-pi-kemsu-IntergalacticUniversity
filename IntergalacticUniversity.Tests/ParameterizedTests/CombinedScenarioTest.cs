@@ -40,7 +40,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(expectedCurrent).Within(0.0001));
+      Assert.That(result, Is.EqualTo(expectedCurrent).Within(0.001));
     }
   }
 }

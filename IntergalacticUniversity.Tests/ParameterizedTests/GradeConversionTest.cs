@@ -1,14 +1,26 @@
-﻿using IntergalacticUniversity.Core.Services;
+﻿using Moq;
+using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Services;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
   public class GradeConversionTest {
     private RatingCalculator _calculator;
+    private Mock<IAttendanceRepository> _mockAttendance;
+    private Mock<IAssignmentsRepository> _mockAssignments;
 
     [SetUp]
     public void SetUp() {
-      // Создание с null, так как этот метод не использует зависимости
-      _calculator = new RatingCalculator(null, null);
+      _mockAttendance = new Mock<IAttendanceRepository>();
+      _mockAssignments = new Mock<IAssignmentsRepository>();
+      _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+    }
+
+    [TearDown]
+    public void TearDown() {
+      _mockAttendance = null;
+      _mockAssignments = null;
+      _calculator = null;
     }
 
     // Проверка 2.1: границы перевода баллов в оценку
