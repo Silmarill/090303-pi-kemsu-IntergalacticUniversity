@@ -35,7 +35,6 @@ namespace IntergalacticUniversity.Tests {
 
     public void CalculateCurrentScore_VariousRawScores_ReturnsCorrectAssignmentsPart(
         double rawScore, double expectedAssignmentsScore) {
-
       // Arrange: фиксируем посещаемость 100%
       _ = _mockAttendance.Setup(repo => repo.GetAttendedClasses(_student, _course)).Returns(40);
       _ = _mockAssignments.Setup(repo => repo.GetRawScore(_student, _course)).Returns(rawScore);
