@@ -1,8 +1,8 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Tests.Common;
 using IntergalacticUniversity.Core.Interfaces;
+using Moq;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
-using IntergalacticUniversity.Tests.Common;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
@@ -16,6 +16,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [SetUp]
     public void SetUp() {
       _student = TestDataFactory.CreateTestStudent();
+
       // Зачёт: maxCurrent = 80, maxAttendance = 10 -> maxAssignments = 70
       _creditCourse = TestDataFactory.CreateCreditCourse(maxRawAssignmentsScore: 1000, totalClasses: 40, maxAttendanceScore: 10);
 
@@ -25,11 +26,11 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     }
 
     // Проверка 2.3: параметризация учёта посещаемости (задания 100%)
-    [TestCase(40, 10)]      // 100% посещений -> attendanceScore = 10
-    [TestCase(30, 7.5)]     // 75% -> 7.5
-    [TestCase(20, 5)]       // 50% -> 5
-    [TestCase(10, 2.5)]     // 25% -> 2.5
-    [TestCase(0, 0)]        // 0% -> 0
+    [TestCase(40, 10)] // 100% посещений -> attendanceScore = 10
+    [TestCase(30, 7.5)] // 75% -> 7.5
+    [TestCase(20, 5)] // 50% -> 5
+    [TestCase(10, 2.5)] // 25% -> 2.5
+    [TestCase(0, 0)] // 0% -> 0
 
     public void CalculateCurrentScore_VariousAttendance_ReturnsCorrectAttendancePortion(int attended, double expectedAttendanceScore) {
       _ = _mockAssignments.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, _creditCourse)).Returns(1000);

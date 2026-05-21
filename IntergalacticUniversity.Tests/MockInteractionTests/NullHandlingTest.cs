@@ -1,17 +1,17 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Tests.Common;
 using IntergalacticUniversity.Core.Interfaces;
+using Moq;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
-using IntergalacticUniversity.Tests.Common;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
   public class NullHandlingTest {
     private Student _student;
     private Course _examCourse;
-    private Mock<IAttendanceRepository> _mockAttendance;
-    private Mock<IAssignmentsRepository> _mockAssignments;
-    private RatingCalculator _calculator;
+    private Mock<IAttendanceRepository>? _mockAttendance;
+    private Mock<IAssignmentsRepository>? _mockAssignments;
+    private RatingCalculator? _calculator;
 
     [SetUp]
     public void SetUp() {

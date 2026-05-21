@@ -1,8 +1,8 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Tests.Common;
 using IntergalacticUniversity.Core.Interfaces;
+using Moq;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
-using IntergalacticUniversity.Tests.Common;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
@@ -16,6 +16,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [SetUp]
     public void SetUp() {
       _student = TestDataFactory.CreateTestStudent();
+
       // Экзамен: maxCurrent = 60, maxAttendance = 20 -> maxAssignments = 40
       _examCourse = TestDataFactory.CreateExamCourse(maxRawAssignmentsScore: 1000, totalClasses: 40, maxAttendanceScore: 20);
 
@@ -25,11 +26,11 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     }
 
     // Проверка 2.2: параметризация приведения баллов за задания (посещаемость 100%)
-    [TestCase(0, 0)]        // 0% -> assignmentsScore = 0
-    [TestCase(300, 12)]     // 30% -> 0.3 * 40 = 12
-    [TestCase(500, 20)]     // 50% -> 20
-    [TestCase(700, 28)]     // 70% -> 28
-    [TestCase(1000, 40)]    // 100% -> 40
+    [TestCase(0, 0)] // 0% -> assignmentsScore = 0
+    [TestCase(300, 12)] // 30% -> 0.3 * 40 = 12
+    [TestCase(500, 20)] // 50% -> 20
+    [TestCase(700, 28)] // 70% -> 28
+    [TestCase(1000, 40)] // 100% -> 40
 
     public void CalculateCurrentScore_VariousRawScores_ReturnsCorrectAssignmentsPortion(double rawScore, double expectedAssignmentsScore) {
       _ = _mockAssignments.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, _examCourse)).Returns(rawScore);

@@ -1,16 +1,16 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Tests.Common;
 using IntergalacticUniversity.Core.Interfaces;
+using Moq;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
-using IntergalacticUniversity.Tests.Common;
 
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
   public class MinimumMaximumScenarios {
     private Student _student;
     private Course _examCourse;
-    private Mock<IAttendanceRepository> _mockAttendance;
-    private Mock<IAssignmentsRepository> _mockAssignments;
+    private Mock<IAttendanceRepository>? _mockAttendance;
+    private Mock<IAssignmentsRepository>? _mockAssignments;
     private RatingCalculator _calculator;
 
     [SetUp]
@@ -31,8 +31,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
     // Проверка 1.1: минимальные значения – всё на нуле
     [Test]
     public void CalculateCurrentScore_WhenNoData_ReturnsZero() {
-      _ = _mockAssignments.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, _examCourse)).Returns((double?)null);
-      _ = _mockAttendance.Setup(attendanceRepo => attendanceRepo.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
+      _ = _mockAssignments!.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, _examCourse)).Returns((double?)null);
+      _ = _mockAttendance!.Setup(attendanceRepo => attendanceRepo.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
@@ -42,8 +42,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
     // Проверка 1.2: максимальные значения – 100% заданий и 100% посещаемости
     [Test]
     public void CalculateCurrentScore_WhenFullMarks_ReturnsMaxCurrent() {
-      _ = _mockAssignments.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, _examCourse)).Returns(800);
-      _ = _mockAttendance.Setup(attendanceRepo => attendanceRepo.GetAttendedClasses(_student, _examCourse)).Returns(40);
+      _ = _mockAssignments!.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, _examCourse)).Returns(800);
+      _ = _mockAttendance!.Setup(attendanceRepo => attendanceRepo.GetAttendedClasses(_student, _examCourse)).Returns(40);
 
       double current = _calculator.CalculateCurrentScore(_student, _examCourse);
 
@@ -64,8 +64,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       Course creditCourse = TestDataFactory.CreateCreditCourse(maxRawAssignmentsScore: 1000, totalClasses: 40, maxAttendanceScore: 15);
 
       // rawScore больше MaxRawAssignmentsScore (1200 > 1000) -> 120%
-      _ = _mockAssignments.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, creditCourse)).Returns(1200);
-      _ = _mockAttendance.Setup(attendanceRepo => attendanceRepo.GetAttendedClasses(_student, creditCourse)).Returns(40); // 100%
+      _ = _mockAssignments!.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, creditCourse)).Returns(1200);
+      _ = _mockAttendance!.Setup(attendanceRepo => attendanceRepo.GetAttendedClasses(_student, creditCourse)).Returns(40); // 100%
 
       RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
@@ -85,8 +85,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       int attended = 27;       // 27 посещений из 40
       double creditScore = 20; // Максимальный балл за зачёт
 
-      _ = _mockAssignments.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, creditCourse)).Returns(rawScore);
-      _ = _mockAttendance.Setup(attendanceRepo => attendanceRepo.GetAttendedClasses(_student, creditCourse)).Returns(attended);
+      _ = _mockAssignments!.Setup(assignmentsRepo => assignmentsRepo.GetRawScore(_student, creditCourse)).Returns(rawScore);
+      _ = _mockAttendance!.Setup(attendanceRepo => attendanceRepo.GetAttendedClasses(_student, creditCourse)).Returns(attended);
 
       RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
