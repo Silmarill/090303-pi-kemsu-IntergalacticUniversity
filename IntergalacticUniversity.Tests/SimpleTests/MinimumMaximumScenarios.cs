@@ -1,25 +1,26 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
   public class MinimumMaximumScenarios {
-    private Student student;
-    private Mock<IAttendanceRepository> mockAttendance;
-    private Mock<IAssignmentsRepository> mockAssignments;
-    private RatingCalculator calculator;
+    private Student _student;
+    private Mock<IAttendanceRepository> _mockAttendance;
+    private Mock<IAssignmentsRepository> _mockAssignments;
+    private RatingCalculator _calculator;
 
     [SetUp]
     public void Setup() {
-      student = new Student { Id = 1, Name = "Test Student" };
+      // DeepSeek: помог настроить инициализацию тестовых данных
+      _student = new Student { Id = 1, Name = "Test Student" };
 
-      mockAttendance = new Mock<IAttendanceRepository>();
+      _mockAttendance = new Mock<IAttendanceRepository>();
 
-      mockAssignments = new Mock<IAssignmentsRepository>();
+      _mockAssignments = new Mock<IAssignmentsRepository>();
 
-      calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
+      _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
     [Test]
@@ -34,11 +35,12 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 20
       };
 
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns((double?)null);
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns((int?)null);
+      // DeepSeek: подсказал как правильно возвращать null через Mock
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, course)).Returns((double?)null);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, course)).Returns((int?)null);
 
       expectedCurrentScore = 0.0;
-      double actual = calculator.CalculateCurrentScore(student, course);
+      double actual = _calculator.CalculateCurrentScore(_student, course);
 
       Assert.That(actual, Is.EqualTo(expectedCurrentScore));
     }
@@ -67,11 +69,11 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = maxAttendanceScore
       };
 
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(maxRawScore);
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(totalClasses);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, course)).Returns(maxRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, course)).Returns(totalClasses);
 
-      double actualCurrent = calculator.CalculateCurrentScore(student, course);
-      string actualGrade = calculator.ConvertToGrade(perfectExamScore);
+      double actualCurrent = _calculator.CalculateCurrentScore(_student, course);
+      string actualGrade = _calculator.ConvertToGrade(perfectExamScore);
 
       Assert.That(actualCurrent, Is.EqualTo(expectedCurrentScore));
       Assert.That(actualGrade, Is.EqualTo(expectedGrade));
@@ -102,10 +104,10 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = maxAttendanceScore
       };
 
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScoreOverflow);
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attendedFull);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, course)).Returns(rawScoreOverflow);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, course)).Returns(attendedFull);
 
-      actualCurrent = calculator.CalculateCurrentScore(student, course);
+      actualCurrent = _calculator.CalculateCurrentScore(_student, course);
 
       Assert.That(actualCurrent, Is.LessThanOrEqualTo(maxCurrentForCredit));
     }
@@ -136,11 +138,12 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = maxAttendanceScore
       };
 
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScoreFor75Current);
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attendedFull);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, course)).Returns(rawScoreFor75Current);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, course)).Returns(attendedFull);
 
-      double actualTotal = calculator.CalculateTotalScore(student, course, examOrCreditScore: creditMaxScore);
+      double actualTotal = _calculator.CalculateTotalScore(_student, course, examOrCreditScore: creditMaxScore);
 
+      // DeepSeek: обратил внимание на погрешность вычислений с double
       Assert.That(actualTotal, Is.EqualTo(expectedTotal));
     }
   }

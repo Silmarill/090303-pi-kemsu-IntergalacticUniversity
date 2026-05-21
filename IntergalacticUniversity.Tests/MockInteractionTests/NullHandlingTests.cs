@@ -1,33 +1,33 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
   public class NullHandlingTests {
-    private Student student;
-    private Course course;
-    private Mock<IAttendanceRepository> mockAttendance;
-    private Mock<IAssignmentsRepository> mockAssignments;
+    private Student _student;
+    private Course _course;
+    private Mock<IAttendanceRepository> _mockAttendance;
+    private Mock<IAssignmentsRepository> _mockAssignments;
 
     [SetUp]
     public void Setup() {
-      student = new Student { Id = 1 };
+      _student = new Student { Id = 1 };
 
       double maxRaw = 1000.0;
       int totalClasses = 30;
       int maxAttendance = 20;
 
-      course = new Course {
+      _course = new Course {
         Type = ExamType.Exam,
         MaxRawAssignmentsScore = maxRaw,
         TotalClasses = totalClasses,
         MaxAttendanceScore = maxAttendance
       };
 
-      mockAttendance = new Mock<IAttendanceRepository>();
-      mockAssignments = new Mock<IAssignmentsRepository>();
+      _mockAttendance = new Mock<IAttendanceRepository>();
+      _mockAssignments = new Mock<IAssignmentsRepository>();
     }
 
     [Test]
@@ -35,13 +35,13 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       RatingCalculator calculator;
       double actualCurrent;
       double expectedCurrent = 20.0;
-      int fullAttendance = course.TotalClasses;
+      int fullAttendance = _course.TotalClasses;
 
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns((double?)null);
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(fullAttendance);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns((double?)null);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(fullAttendance);
 
-      calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
-      actualCurrent = calculator.CalculateCurrentScore(student, course);
+      calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      actualCurrent = calculator.CalculateCurrentScore(_student, _course);
 
       Assert.That(actualCurrent, Is.EqualTo(expectedCurrent));
     }
@@ -51,13 +51,13 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       RatingCalculator calculator;
       double actualCurrent;
       double expectedCurrent = 40.0;
-      double fullRawScore = course.MaxRawAssignmentsScore;
+      double fullRawScore = _course.MaxRawAssignmentsScore;
 
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(fullRawScore);
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns((int?)null);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(fullRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns((int?)null);
 
-      calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
-      actualCurrent = calculator.CalculateCurrentScore(student, course);
+      calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      actualCurrent = calculator.CalculateCurrentScore(_student, _course);
 
       Assert.That(actualCurrent, Is.EqualTo(expectedCurrent));
     }

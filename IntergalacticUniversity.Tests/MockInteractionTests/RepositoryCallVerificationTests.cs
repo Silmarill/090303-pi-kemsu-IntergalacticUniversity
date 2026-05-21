@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
@@ -43,6 +43,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
       _ = calculator.CalculateCurrentScore(student, course);
 
+      // DeepSeek: проверяем, что каждый репозиторий был вызван ровно один раз
       mockAttendance.Verify(r => r.GetAttendedClasses(student, course), Times.Once);
       mockAssignments.Verify(r => r.GetRawScore(student, course), Times.Once);
     }

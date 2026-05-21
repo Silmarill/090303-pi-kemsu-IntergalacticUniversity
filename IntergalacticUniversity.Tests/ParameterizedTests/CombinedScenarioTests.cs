@@ -1,34 +1,34 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
   public class CombinedScenarioTests {
-    private Student student;
-    private Course course;
-    private Mock<IAttendanceRepository> mockAttendance;
-    private Mock<IAssignmentsRepository> mockAssignments;
+    private Student _student;
+    private Course _course;
+    private Mock<IAttendanceRepository> _mockAttendance;
+    private Mock<IAssignmentsRepository> _mockAssignments;
 
     [SetUp]
     public void Setup() {
       int defaultStudentId = 1;
-      student = new Student { Id = defaultStudentId };
+      _student = new Student { Id = defaultStudentId };
 
       double maxRaw = 600.0;
       int totalClasses = 20;
       int maxAttendance = 15;
 
-      course = new Course {
+      _course = new Course {
         Type = ExamType.Exam,
         MaxRawAssignmentsScore = maxRaw,
         TotalClasses = totalClasses,
         MaxAttendanceScore = maxAttendance
       };
 
-      mockAttendance = new Mock<IAttendanceRepository>();
-      mockAssignments = new Mock<IAssignmentsRepository>();
+      _mockAttendance = new Mock<IAttendanceRepository>();
+      _mockAssignments = new Mock<IAssignmentsRepository>();
     }
 
     [TestCase(0.0, 0.0, 0)]
@@ -39,14 +39,14 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     public void CalculateCurrentScore_CombinedPercentages_ReturnsExpectedCurrent(
         double rawPercent, double attendancePercent, double expectedCurrent) {
       double delta = 0.001;
-      double rawScore = rawPercent * course.MaxRawAssignmentsScore;
-      int attended = (int)(attendancePercent * course.TotalClasses);
+      double rawScore = rawPercent * _course.MaxRawAssignmentsScore;
+      int attended = (int)(attendancePercent * _course.TotalClasses);
 
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScore);
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attended);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(rawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(attended);
 
-      RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
-      double actualCurrent = calculator.CalculateCurrentScore(student, course);
+      RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
+      double actualCurrent = calculator.CalculateCurrentScore(_student, _course);
 
       Assert.That(actualCurrent, Is.EqualTo(expectedCurrent).Within(delta));
     }

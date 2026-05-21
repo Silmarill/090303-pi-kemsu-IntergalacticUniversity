@@ -1,14 +1,17 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class TestCaseExample {
-    [TestCase(0, 0, 0, 0)]                // rawScore, attended, expectedAssignmentsPart, expectedAttendancePart
-    [TestCase(500, 15, 20, 10)]           // 500/1000=0.5 от 40 = 20; 15/30=0.5 от 20 = 10
-    [TestCase(1000, 30, 40, 20)]          // полные баллы
+    // rawScore, attended, expectedAssignmentsPart, expectedAttendancePart
+    [TestCase(0, 0, 0, 0)]
+    // 500/1000=0.5 от 40 = 20; 15/30=0.5 от 20 = 10
+    [TestCase(500, 15, 20, 10)]
+    // полные баллы
+    [TestCase(1000, 30, 40, 20)]
     public void CalculateCurrentScore_VariousInputs_ReturnsExpected(
         double rawScore, int attended, double expectedAssignments, double expectedAttendance) {
       // Arrange

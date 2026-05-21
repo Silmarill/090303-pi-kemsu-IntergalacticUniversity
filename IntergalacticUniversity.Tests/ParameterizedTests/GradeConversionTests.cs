@@ -8,7 +8,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(60, "Удовлетворительно")]
     [TestCase(66, "Хорошо")]
     [TestCase(75, "Хорошо")]
-    [TestCase(88, "Отлично")]
+    [TestCase(86, "Отлично")]
     [TestCase(100, "Отлично")]
     public void ConvertToGrade_OnBoundaryValues_ReturnsCorrectGrade(double totalScore, string expectedGrade) {
       RatingCalculator calculator;
