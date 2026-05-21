@@ -1,6 +1,7 @@
-﻿using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Services;
+﻿// ДипСик помог реализовать параметризованные тесты с TestCase для проверки разных процентов выполнения заданий
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
+using IntergalacticUniversity.Core.Services;
 using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
@@ -15,21 +16,34 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [SetUp]
     public void SetUp() {
       int attendedClasses;
+      double maxRawAssignmentsScore;
+      int totalClasses;
+      int maxAttendanceScore;
+      int courseId;
+      string courseName;
+      ExamType examType;
+
+      attendedClasses = 30;
+      maxRawAssignmentsScore = 1000.0;
+      totalClasses = 30;
+      maxAttendanceScore = 20;
+      courseId = 1;
+      courseName = "Exam";
+      examType = ExamType.Exam;
 
       _student = new Student { Id = 1, Name = "Test" };
       _examCourse = new Course {
-        CourseId = 1,
-        Name = "Exam",
-        Type = ExamType.Exam,
-        MaxRawAssignmentsScore = 1000,
-        TotalClasses = 30,
-        MaxAttendanceScore = 20
+        CourseId = courseId,
+        Name = courseName,
+        Type = examType,
+        MaxRawAssignmentsScore = maxRawAssignmentsScore,
+        TotalClasses = totalClasses,
+        MaxAttendanceScore = maxAttendanceScore
       };
       _mockAttendance = new Mock<IAttendanceRepository>();
       _mockAssignments = new Mock<IAssignmentsRepository>();
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      attendedClasses = 30;
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(attendedClasses);
     }
 
@@ -37,17 +51,18 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(300, 12)]
     [TestCase(1000, 40)]
     public void CalculateCurrentScore_WithDifferentRawScores_ReturnsCorrectAssignmentsPortion(double rawScore, double expectedAssignmentsPart) {
-      double result;
       double attendancePart;
-      double expected;
+      double expectedCurrentScore;
+      double actualCurrentScore;
+
+      attendancePart = 20.0;
+      expectedCurrentScore = expectedAssignmentsPart + attendancePart;
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
 
-      result = _calculator.CalculateCurrentScore(_student, _examCourse);
-      attendancePart = 20.0;
-      expected = expectedAssignmentsPart + attendancePart;
+      actualCurrentScore = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(expected));
+      Assert.That(actualCurrentScore, Is.EqualTo(expectedCurrentScore).Within(0.001));
     }
   }
 }

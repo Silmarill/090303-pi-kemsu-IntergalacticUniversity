@@ -1,6 +1,7 @@
-﻿using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Services;
+﻿// ДипСик помог настроить мок на выброс исключения и проверить, что исключение пробрасывается дальше
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
+using IntergalacticUniversity.Core.Services;
 using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
@@ -14,6 +15,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       Mock<IAssignmentsRepository> mockAssignments;
       RatingCalculator calculator;
       double result;
+      double expectedResult;
 
       student = new Student { Id = 1, Name = "Test" };
       course = new Course {
@@ -26,6 +28,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       };
       mockAttendance = new Mock<IAttendanceRepository>();
       mockAssignments = new Mock<IAssignmentsRepository>();
+      expectedResult = 10.0;
 
       _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns((double?)null);
       _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(10);
@@ -33,7 +36,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
       result = calculator.CalculateCurrentScore(student, course);
 
-      Assert.That(result, Is.EqualTo(10.0));
+      Assert.That(result, Is.EqualTo(expectedResult).Within(0.001));
     }
 
     [Test]
@@ -44,6 +47,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       Mock<IAssignmentsRepository> mockAssignments;
       RatingCalculator calculator;
       double result;
+      double expectedResult;
 
       student = new Student { Id = 1, Name = "Test" };
       course = new Course {
@@ -52,10 +56,11 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
         Type = ExamType.Exam,
         MaxRawAssignmentsScore = 100,
         TotalClasses = 10,
-        MaxAttendanceScore = 10
+        MaxAttendanceScore = 10,
       };
       mockAttendance = new Mock<IAttendanceRepository>();
       mockAssignments = new Mock<IAssignmentsRepository>();
+      expectedResult = 50.0;
 
       _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(100);
       _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns((int?)null);
@@ -63,7 +68,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
       result = calculator.CalculateCurrentScore(student, course);
 
-      Assert.That(result, Is.EqualTo(50.0));
+      Assert.That(result, Is.EqualTo(expectedResult).Within(0.001));
     }
   }
 }

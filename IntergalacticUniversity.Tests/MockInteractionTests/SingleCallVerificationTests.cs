@@ -1,6 +1,6 @@
-﻿using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
-using IntergalacticUniversity.Core.Interfaces;
 using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
@@ -29,9 +29,9 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
       mockAssignments = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
 
-      rawScore = 50;
+      rawScore = 50.0;
       attendedClasses = 5;
-      examScore = 30;
+      examScore = 30.0;
 
       _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScore);
       _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attendedClasses);

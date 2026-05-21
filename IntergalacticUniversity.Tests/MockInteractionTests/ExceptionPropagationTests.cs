@@ -1,6 +1,6 @@
-﻿using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
-using IntergalacticUniversity.Core.Interfaces;
 using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {

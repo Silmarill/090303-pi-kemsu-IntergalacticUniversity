@@ -1,6 +1,6 @@
-﻿using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
-using IntergalacticUniversity.Core.Interfaces;
 using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
@@ -46,12 +46,12 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attended);
 
       result = _calculator.CalculateCurrentScore(_student, _creditCourse);
-      maxCurrent = 80;
-      maxAttendance = 10;
+      maxCurrent = 80.0;
+      maxAttendance = 10.0;
       assignmentsPart = maxCurrent - maxAttendance;
       expected = assignmentsPart + expectedAttendancePart;
 
-      Assert.That(result, Is.EqualTo(expected));
+      Assert.That(result, Is.EqualTo(expected).Within(0.001));
     }
   }
 }

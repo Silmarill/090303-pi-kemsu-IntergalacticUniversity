@@ -1,6 +1,7 @@
-﻿using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Services;
+﻿// ДипСик помог покрыть граничные случаи: null данные, максимальные значения и переполнение сверху
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
+using IntergalacticUniversity.Core.Services;
 using Moq;
 
 namespace IntergalacticUniversity.Tests.SimpleTests {
@@ -36,7 +37,7 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       double result;
       result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(0.0));
+      Assert.That(result, Is.EqualTo(0.0).Within(0.001));
     }
 
     [Test]
@@ -48,9 +49,9 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       double current;
       string grade;
 
-      rawScore = 800;
+      rawScore = 800.0;
       attendedClasses = 40;
-      expectedCurrent = 60;
+      expectedCurrent = 60.0;
       expectedGrade = "Отлично";
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
@@ -59,7 +60,7 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       current = _calculator.CalculateCurrentScore(_student, _examCourse);
       grade = _calculator.ConvertToGrade(100.0);
 
-      Assert.That(current, Is.EqualTo(expectedCurrent));
+      Assert.That(current, Is.EqualTo(expectedCurrent).Within(0.001));
       Assert.That(grade, Is.EqualTo(expectedGrade));
     }
 
@@ -80,16 +81,16 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 15
       };
 
-      rawScore = 1200;
+      rawScore = 1200.0;
       attendedClasses = 30;
-      expectedResult = 80;
+      expectedResult = 80.0;
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, creditCourse)).Returns(rawScore);
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, creditCourse)).Returns(attendedClasses);
 
       result = _calculator.CalculateCurrentScore(_student, creditCourse);
 
-      Assert.That(result, Is.EqualTo(expectedResult));
+      Assert.That(result, Is.EqualTo(expectedResult).Within(0.001));
     }
 
     [Test]
@@ -112,15 +113,15 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
       rawScore = 928.57;
       attendedClasses = 40;
-      examScore = 20;
-      expectedTotal = 95;
+      examScore = 20.0;
+      expectedTotal = 95.0;
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, creditCourse)).Returns(rawScore);
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, creditCourse)).Returns(attendedClasses);
 
       total = _calculator.CalculateTotalScore(_student, creditCourse, examScore);
 
-      Assert.That(total, Is.EqualTo(expectedTotal));
+      Assert.That(total, Is.EqualTo(expectedTotal).Within(0.001));
     }
   }
 }

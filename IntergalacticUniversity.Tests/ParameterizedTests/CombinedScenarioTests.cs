@@ -1,6 +1,6 @@
-﻿using IntergalacticUniversity.Core.Models;
+﻿using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
-using IntergalacticUniversity.Core.Interfaces;
 using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
@@ -12,6 +12,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     private Mock<IAssignmentsRepository> _mockAssignments;
     private RatingCalculator _calculator;
 
+    // ДипСик помог объединить в одном параметризованном тесте и проценты заданий, и проценты посещаемости
     [SetUp]
     public void SetUp() {
       _student = new Student { Id = 1, Name = "Test" };
@@ -28,6 +29,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
+    // ДипСик подсказал использовать TestCase с разными комбинациями данных для проверки граничных значений
     [TestCase(0, 0, 0)]
     [TestCase(300, 10, 30)]
     [TestCase(600, 20, 60)]
@@ -40,7 +42,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
 
       result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(expectedCurrent).Within(0.01));
+      Assert.That(result, Is.EqualTo(expectedCurrent).Within(0.001));
     }
   }
 }
