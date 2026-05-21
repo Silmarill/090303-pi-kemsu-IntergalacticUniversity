@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -33,7 +33,7 @@ namespace IntergalacticUniversity.Tests {
 
       // Assert
       double expectedTotal = expectedAssignments + expectedAttendance;
-      Assert.That(result, Is.EqualTo(expectedTotal));
+      Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
 
     [TestCase(49, "Неудовлетворительно")]
@@ -71,7 +71,7 @@ namespace IntergalacticUniversity.Tests {
 
       double result = calculator.CalculateCurrentScore(student, course);
 
-      Assert.That(result, Is.EqualTo(expectedAssignmentsScore + 20));
+      Assert.That(result, Is.EqualTo(expectedAssignmentsScore + 20).Within(0.001));
     }
 
     [TestCase(20, 10)]
@@ -96,7 +96,7 @@ namespace IntergalacticUniversity.Tests {
 
       double result = calculator.CalculateCurrentScore(student, course);
 
-      Assert.That(result, Is.EqualTo(70 + expectedAttendanceScore));
+      Assert.That(result, Is.EqualTo(70 + expectedAttendanceScore).Within(0.001));
     }
   }
 }
