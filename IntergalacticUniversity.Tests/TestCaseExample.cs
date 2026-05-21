@@ -6,14 +6,18 @@ using Moq;
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class TestCaseExample {
+
     // rawScore, attended, expectedAssignmentsPart, expectedAttendancePart
     [TestCase(0, 0, 0, 0)]
+
     // 500/1000=0.5 от 40 = 20; 15/30=0.5 от 20 = 10
     [TestCase(500, 15, 20, 10)]
+
     // полные баллы
     [TestCase(1000, 30, 40, 20)]
     public void CalculateCurrentScore_VariousInputs_ReturnsExpected(
         double rawScore, int attended, double expectedAssignments, double expectedAttendance) {
+
       // Arrange
       Student student = new Student { Id = 1 };
       Course course = new Course {
