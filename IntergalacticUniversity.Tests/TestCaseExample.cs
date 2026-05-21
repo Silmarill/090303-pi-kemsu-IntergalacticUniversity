@@ -6,7 +6,6 @@ using Moq;
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class TestCaseExample {
-
     // rawScore, attended, expectedAssignmentsPart, expectedAttendancePart
     [TestCase(0, 0, 0, 0)]
 
@@ -17,7 +16,6 @@ namespace IntergalacticUniversity.Tests {
     [TestCase(1000, 30, 40, 20)]
     public void CalculateCurrentScore_VariousInputs_ReturnsExpected(
         double rawScore, int attended, double expectedAssignments, double expectedAttendance) {
-
       // Arrange
       Student student = new Student { Id = 1 };
       Course course = new Course {
