@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -31,7 +31,7 @@ namespace IntergalacticUniversity.Tests {
 
       // Assert
       // Ожидаем: задания 0.5*(60-20)=20, посещаемость 0.5*20=10, экзамен 30 -> итого 60
-      Assert.That(total, Is.EqualTo(60.0));
+      Assert.That(total, Is.EqualTo(60.0).Within(0.001));
     }
 
     [Test]
@@ -126,6 +126,7 @@ namespace IntergalacticUniversity.Tests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
+
       // Настраиваем так, чтобы посещаемость дала 10 баллов
       _ = mockAttendance.Setup(repo => repo.GetAttendedClasses(student, course)).Returns(27);
 

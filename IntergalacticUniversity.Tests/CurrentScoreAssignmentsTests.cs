@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -16,6 +16,7 @@ namespace IntergalacticUniversity.Tests {
       _mockAttendance = new Mock<IAttendanceRepository>();
       _mockAssignments = new Mock<IAssignmentsRepository>();
       _student = new Student { Id = 67 };
+
       // Курс: Exam, MaxRaw = 1000, MaxAttendance = 20 → maxAssignments = 40
       _course = new Course {
         Type = ExamType.Exam,
@@ -34,6 +35,7 @@ namespace IntergalacticUniversity.Tests {
 
     public void CalculateCurrentScore_VariousRawScores_ReturnsCorrectAssignmentsPart(
         double rawScore, double expectedAssignmentsScore) {
+
       // Arrange: фиксируем посещаемость 100%
       _ = _mockAttendance.Setup(repo => repo.GetAttendedClasses(_student, _course)).Returns(40);
       _ = _mockAssignments.Setup(repo => repo.GetRawScore(_student, _course)).Returns(rawScore);
@@ -47,7 +49,7 @@ namespace IntergalacticUniversity.Tests {
       double result = calculator.CalculateCurrentScore(_student, _course);
 
       // Assert
-      Assert.That(result, Is.EqualTo(expectedTotal));
+      Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
   }
 }

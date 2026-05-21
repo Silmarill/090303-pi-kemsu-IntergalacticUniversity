@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -52,7 +52,7 @@ namespace IntergalacticUniversity.Tests {
       // Assert
       // Посещаемость: 100% от 20 = 20 баллов
       // Задания: 0 баллов
-      Assert.That(result, Is.EqualTo(20.0));
+      Assert.That(result, Is.EqualTo(20.0).Within(0.001));
     }
 
     // Обработка null от репозитория — данные о посещаемости отсутствуют
@@ -68,7 +68,7 @@ namespace IntergalacticUniversity.Tests {
       // Assert
       // Задания: 800/800 = 100% от 40 = 40 баллов
       // Посещаемость: 0 баллов
-      Assert.That(result, Is.EqualTo(40.0));
+      Assert.That(result, Is.EqualTo(40.0).Within(0.001));
     }
 
     [Test]

@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -49,7 +49,7 @@ namespace IntergalacticUniversity.Tests {
       double result = calculator.CalculateCurrentScore(_student, _course);
 
       // Assert
-      Assert.That(result, Is.EqualTo(expectedCurrent));
+      Assert.That(result, Is.EqualTo(expectedCurrent).Within(0.001));
     }
   }
 }
