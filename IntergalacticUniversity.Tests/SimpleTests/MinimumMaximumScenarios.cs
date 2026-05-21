@@ -1,8 +1,8 @@
 ﻿using IntergalacticUniversity.Tests.Common;
 using IntergalacticUniversity.Core.Interfaces;
-using Moq;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
