@@ -1,9 +1,8 @@
-﻿//Сделал ИИ
+﻿// Сделал ИИ
 
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
 using Moq;
-
 
 namespace IntergalacticUniversity.Tests.TestsWithParameters {
   [TestFixture]
@@ -12,8 +11,8 @@ namespace IntergalacticUniversity.Tests.TestsWithParameters {
 
     [SetUp]
     public void SetUp() {
-      var mockAttendance = new Mock<IAttendanceRepository>();
-      var mockAssignment = new Mock<IAssignmentsRepository>();
+      Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
+      Mock<IAssignmentsRepository> mockAssignment = new Mock<IAssignmentsRepository>();
       _calculator = new RatingCalculator(mockAttendance.Object, mockAssignment.Object);
     }
 
