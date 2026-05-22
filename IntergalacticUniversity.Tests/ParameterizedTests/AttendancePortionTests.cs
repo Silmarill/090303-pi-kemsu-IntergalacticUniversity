@@ -1,7 +1,7 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
@@ -34,8 +34,8 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(20, 5)]
     [TestCase(0, 0)]
     public void CalculateCurrentScore_VariousAttendance_ReturnsCorrectAttendancePortion(int attendedClasses, double expectedAttendanceScore) {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1000);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attendedClasses);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1000);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attendedClasses);
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
 

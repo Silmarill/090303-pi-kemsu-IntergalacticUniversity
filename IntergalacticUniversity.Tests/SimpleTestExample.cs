@@ -1,7 +1,7 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -18,10 +18,10 @@ namespace IntergalacticUniversity.Tests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(30); // 100%
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(30); // 100%
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000);    // 100%
+      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(1000); // 100%
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 

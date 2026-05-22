@@ -1,7 +1,7 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
@@ -42,8 +42,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
     [Test]
     public void CalculateCurrentScore_WhenNoData_ReturnsZero() {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
@@ -52,8 +52,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
     [Test]
     public void CalculateCurrentScore_WhenMaxValues_ReturnsMaxCurrent() {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(800);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(40);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(800);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(40);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
@@ -69,8 +69,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
     [Test]
     public void CalculateCurrentScore_WhenExceedsMaxCurrent_CapsAtMaxCurrent() {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1200);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(40);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1200);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(40);
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
 
@@ -88,8 +88,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 10
       };
 
-      _mockAssignments.Setup(r => r.GetRawScore(_student, customCreditCourse)).Returns(1000);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, customCreditCourse)).Returns(40);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, customCreditCourse)).Returns(1000);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, customCreditCourse)).Returns(40);
 
       double currentScore = _calculator.CalculateCurrentScore(_student, customCreditCourse);
       double totalScore = _calculator.CalculateTotalScore(_student, customCreditCourse, 20);

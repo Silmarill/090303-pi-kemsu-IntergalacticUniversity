@@ -1,7 +1,7 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
@@ -38,8 +38,8 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
 
-      mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(40);
-      mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(40);
+      _ = mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
@@ -53,8 +53,8 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
 
-      mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns((int?)null);
-      mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1000);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns((int?)null);
+      _ = mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1000);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
@@ -69,8 +69,8 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
 
-      mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
-      mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
+      _ = mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 

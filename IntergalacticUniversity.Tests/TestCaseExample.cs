@@ -1,14 +1,14 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class TestCaseExample {
-    [TestCase(0, 0, 0, 0)]              // rawScore, attended, expectedAssignmentsPart, expectedAttendancePart
-    [TestCase(500, 15, 20, 10)]         // 500/1000=0.5 от 40 = 20; 15/30=0.5 от 20 = 10
-    [TestCase(1000, 30, 40, 20)]        // полные баллы
+    [TestCase(0, 0, 0, 0)] // rawScore, attended, expectedAssignmentsPart, expectedAttendancePart
+    [TestCase(500, 15, 20, 10)] // 500/1000=0.5 от 40 = 20; 15/30=0.5 от 20 = 10
+    [TestCase(1000, 30, 40, 20)] // полные баллы
     public void CalculateCurrentScore_VariousInputs_ReturnsExpected(
         double rawScore, int attended, double expectedAssignments, double expectedAttendance) {
       // Arrange
@@ -21,10 +21,10 @@ namespace IntergalacticUniversity.Tests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attended);
+      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attended);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScore);
+      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScore);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 

@@ -1,7 +1,7 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
@@ -36,8 +36,8 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     [TestCase(150, 5, 15)]
     public void CalculateCurrentScore_CombinedScenarios_ReturnsExpectedCurrentScore(
         double rawScore, int attendedClasses, double expectedCurrentScore) {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(attendedClasses);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(rawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(attendedClasses);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 

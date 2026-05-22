@@ -1,7 +1,7 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
@@ -27,15 +27,15 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       _mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
       _mockAssignments = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
 
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1000);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1000);
 
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
     [Test]
     public void CalculateCurrentScore_CallsRepositoriesExactlyOnce() {
-      _calculator.CalculateCurrentScore(_student, _course);
+      _ = _calculator.CalculateCurrentScore(_student, _course);
 
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
