@@ -19,16 +19,6 @@ namespace IntergalacticUniversity.Tests {
       _student = new Student { Id = 99, Name = "The Test Student" };
     }
 
-    // Auxiliary method
-    private static Course CreateCourse(ExamType type, double maxRaw, int totalClasses, int maxAttendance) {
-      return new Course {
-        Type = type,
-        MaxRawAssignmentsScore = maxRaw,
-        TotalClasses = totalClasses,
-        MaxAttendanceScore = maxAttendance
-      };
-    }
-
     // null/null for both repositories
     [Test]
     public void CalculateCurrentScore_BothReposReturnNull_ReturnsZero() {
@@ -154,6 +144,16 @@ namespace IntergalacticUniversity.Tests {
       _ = Assert.Throws<TimeoutException>(() => _calculator.CalculateCurrentScore(_student, course));
 
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, course), Times.Never);
+    }
+
+    // Auxiliary method
+    private static Course CreateCourse(ExamType type, double maxRaw, int totalClasses, int maxAttendance) {
+      return new Course {
+        Type = type,
+        MaxRawAssignmentsScore = maxRaw,
+        TotalClasses = totalClasses,
+        MaxAttendanceScore = maxAttendance
+      };
     }
   }
 }
