@@ -39,13 +39,13 @@ namespace IntergalacticUniversity.Tests {
     }
 
     // Проверка 2.2: Параметризация приведения баллов за задания
-    [TestCase(0, 0)]      // 0% заданий
-    [TestCase(30, 12)]    // 30% от maxAssignments (40) = 12
-    [TestCase(50, 20)]    // 50% = 20
-    [TestCase(70, 28)]    // 70% = 28
-    [TestCase(100, 40)]   // 100% = 40
+    [TestCase(0, 0)]// 0% заданий
+    [TestCase(30, 12)]// 30% от maxAssignments (40) = 12
+    [TestCase(50, 20)]// 50% = 20
+    [TestCase(70, 28)]// 70% = 28
+    [TestCase(100, 40)]// 100% = 40
     public void CalculateCurrentScore_VariousAssignmentsPercentages_ReturnsCorrectScore(
-        double rawScorePercent, double expectedAssignmentsScore) {
+          double rawScorePercent, double expectedAssignmentsScore) {
       // Arrange
       Course course = new Course {
         CourseId = 101,
@@ -71,10 +71,10 @@ namespace IntergalacticUniversity.Tests {
     }
 
     // Проверка 2.3: Параметризация учёта посещаемости
-    [TestCase(30, 10)]  // 100% посещаемости → 10 баллов
-    [TestCase(15, 5)]   // 50% → 5
-    [TestCase(0, 0)]    // 0% → 0
-    [TestCase(9, 3)]    // 30% → 3
+    [TestCase(30, 10)]// 100% посещаемости → 10 баллов
+    [TestCase(15, 5)]// 50% → 5
+    [TestCase(0, 0)]// 0% → 0
+    [TestCase(9, 3)]// 30% → 3
     public void CalculateCurrentScore_VariousAttendancePercentages_ReturnsCorrectScore(
         int attendedClasses, double expectedAttendanceScore) {
       // Arrange
@@ -104,10 +104,10 @@ namespace IntergalacticUniversity.Tests {
     // maxAssignments = maxCurrent - maxAttendance = 60 - 15 = 45
     // assignmentsScore = rawPercent * maxAssignments
     // attendanceScore = attendancePercent * maxAttendance
-    [TestCase(0, 0, 0)]        // 0% + 0% = 0
-    [TestCase(50, 50, 30)]     // 22.5 + 7.5 = 30
-    [TestCase(100, 50, 52.5)]  // 45 + 7.5 = 52.5
-    [TestCase(100, 100, 60)]   // 45 + 15 = 60
+    [TestCase(0, 0, 0)]// 0% + 0% = 0
+    [TestCase(50, 50, 30)]// 22.5 + 7.5 = 30
+    [TestCase(100, 50, 52.5)]// 45 + 7.5 = 52.5
+    [TestCase(100, 100, 60)]// 45 + 15 = 60
     public void CalculateCurrentScore_CombinedScenarios_ReturnsExpectedScore(
         double rawPercent, double attendancePercent, double expectedScore) {
       // Arrange
