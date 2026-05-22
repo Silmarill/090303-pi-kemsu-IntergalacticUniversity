@@ -43,7 +43,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
 
       calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
-      Assert.Throws<TimeoutException>(() => calculator.CalculateCurrentScore(_student, _course));
+      _ = Assert.Throws<TimeoutException>(() => calculator.CalculateCurrentScore(_student, _course));
     }
   }
 }
