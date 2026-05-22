@@ -1,21 +1,21 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class RatingCalculatorTestsBlock1 {
-    private const double examMaxRawScore = 800;
-    private const int examTotalClasses = 40;
-    private const int examMaxAttendanceScore = 20;
+    private const double ExamMaxRawScore = 800;
+    private const int ExamTotalClasses = 40;
+    private const int ExamMaxAttendanceScore = 20;
 
-    private const double creditMaxRawScore = 1000;
-    private const int creditTotalClasses = 30;
-    private const int creditMaxAttendanceScore = 15;
-    private const int creditMaxCurrent = 80; // Лимит сверху для зачета
+    private const double CreditMaxRawScore = 1000;
+    private const int CreditTotalClasses = 30;
+    private const int CreditMaxAttendanceScore = 15;
+    private const int CreditMaxCurrent = 80; // Лимит сверху для зачета
 
-    private const double creditBonusPoints = 20; // Бонус за зачет
+    private const double CreditBonusPoints = 20; // Бонус за зачет
 
     private Student _student;
     private Course _examCourse;
@@ -32,19 +32,19 @@ namespace IntergalacticUniversity.Tests {
         CourseId = 1,
         Name = "Математика",
         Type = ExamType.Exam,
-        MaxRawAssignmentsScore = examMaxRawScore,
-        TotalClasses = examTotalClasses,
-        MaxAttendanceScore = examMaxAttendanceScore
+        MaxRawAssignmentsScore = ExamMaxRawScore,
+        TotalClasses = ExamTotalClasses,
+        MaxAttendanceScore = ExamMaxAttendanceScore
       };
 
       _creditCourse = new Course {
         CourseId = 2,
         Name = "Программирование",
         Type = ExamType.Credit,
-        MaxRawAssignmentsScore = creditMaxRawScore,
-        TotalClasses = creditTotalClasses,
-        MaxAttendanceScore = creditMaxAttendanceScore,
-        MaxCurrent = creditMaxCurrent
+        MaxRawAssignmentsScore = CreditMaxRawScore,
+        TotalClasses = CreditTotalClasses,
+        MaxAttendanceScore = CreditMaxAttendanceScore,
+        MaxCurrent = CreditMaxCurrent
       };
 
       _mockAttendance = new Mock<IAttendanceRepository>();
@@ -64,8 +64,8 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateCurrentScore_WithMaxValues_ReturnsMaxCurrentForExam() {
-      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(examMaxRawScore);
-      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(examTotalClasses);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns(ExamMaxRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns(ExamTotalClasses);
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
       Assert.That(result, Is.EqualTo(60.0).Within(0.001));
@@ -73,32 +73,32 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void ConvertToGrade_With100_ReturnsExcellent() {
-      const int perfectScore = 100;
-      string result = _calculator.ConvertToGrade(perfectScore);
+      const int PerfectScore = 100;
+      string result = _calculator.ConvertToGrade(PerfectScore);
       Assert.That(result, Is.EqualTo("Отлично"));
     }
 
     [Test]
     public void CalculateCurrentScore_WhenExceedsMaxCurrent_CapsAtMaxCurrent() {
-      const double overLimitRawScore = 1200; // Больше, чем creditMaxRawScore
-      const int maxAttendanceForCredit = 30; // 100% посещений
+      const double OverLimitRawScore = 1200; // Больше, чем CreditMaxRawScore
+      const int MaxAttendanceForCredit = 30; // 100% посещений
 
-      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(overLimitRawScore);
-      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(maxAttendanceForCredit);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(OverLimitRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(MaxAttendanceForCredit);
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
-      Assert.That(result, Is.EqualTo(creditMaxCurrent).Within(0.001));
+      Assert.That(result, Is.EqualTo(CreditMaxCurrent).Within(0.001));
     }
 
     [Test]
     public void CalculateTotalScore_WithCredit_AddsExamScoreCorrectly() {
-      const double rawScoreForCredit = 875; // 87.5% выполнения
-      const int attendedClassesForCredit = 30; // 100% посещений
+      const double RawScoreForCredit = 875; // 87.5% выполнения
+      const int AttendedClassesForCredit = 30; // 100% посещений
 
-      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(rawScoreForCredit);
-      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(attendedClassesForCredit);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(RawScoreForCredit);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(AttendedClassesForCredit);
 
-      double result = _calculator.CalculateTotalScore(_student, _creditCourse, creditBonusPoints);
+      double result = _calculator.CalculateTotalScore(_student, _creditCourse, CreditBonusPoints);
       Assert.That(result, Is.EqualTo(95.0).Within(0.001));
     }
   }
