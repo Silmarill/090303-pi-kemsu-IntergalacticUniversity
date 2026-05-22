@@ -1,8 +1,8 @@
-using Moq;
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 using IntergalacticUniversity.Tests.Common;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
@@ -31,9 +31,9 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       _mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
       _mockAssignments = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
 
-      _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, _course))
+      _ = _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, _course))
           .Returns(SampleAttended);
-      _mockAssignments.Setup(repository => repository.GetRawScore(_student, _course))
+      _ = _mockAssignments.Setup(repository => repository.GetRawScore(_student, _course))
           .Returns(SampleRawScore);
 
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
@@ -41,17 +41,17 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
 
     [Test]
     public void CalculateTotalScore_WhenCalled_InvokesEachRepositoryOnce() {
-      _calculator.CalculateTotalScore(_student, _course, SampleExamScore);
+      _ = _calculator.CalculateTotalScore(_student, _course, SampleExamScore);
 
       _mockAttendance.Verify(
           repository => repository.GetAttendedClasses(
-              It.IsAny<Student>(),
-              It.IsAny<Course>()),
+              It.Is<Student>(student => student == _student),
+              It.Is<Course>(course => course == _course)),
           Times.Once);
       _mockAssignments.Verify(
           repository => repository.GetRawScore(
-              It.IsAny<Student>(),
-              It.IsAny<Course>()),
+              It.Is<Student>(student => student == _student),
+              It.Is<Course>(course => course == _course)),
           Times.Once);
     }
   }

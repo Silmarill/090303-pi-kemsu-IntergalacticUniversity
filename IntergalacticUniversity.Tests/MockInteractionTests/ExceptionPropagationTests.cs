@@ -1,9 +1,8 @@
-using System;
-using Moq;
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 using IntergalacticUniversity.Tests.Common;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
@@ -33,11 +32,11 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
       mockAssignments = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
 
-      mockAssignments.Setup(repository => repository.GetRawScore(
+      _ = mockAssignments.Setup(repository => repository.GetRawScore(
               It.IsAny<Student>(),
               It.IsAny<Course>()))
           .Returns((double?)null);
-      mockAttendance.Setup(repository => repository.GetAttendedClasses(
+      _ = mockAttendance.Setup(repository => repository.GetAttendedClasses(
               It.IsAny<Student>(),
               It.IsAny<Course>()))
           .Throws<TimeoutException>();

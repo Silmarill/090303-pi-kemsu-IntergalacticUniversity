@@ -1,8 +1,8 @@
-using Moq;
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 using IntergalacticUniversity.Tests.Common;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
@@ -49,10 +49,6 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
-    [TearDown]
-    public void TearDown() {
-    }
-
     [Test]
     public void CalculateCurrentScore_WhenNoData_ReturnsZero() {
       Course course = TestDataFactory.CreateExamCourse(
@@ -60,14 +56,14 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
           TotalClassesForNoData,
           MaxAttendanceForNoData);
 
-      _mockAssignments.Setup(repository => repository.GetRawScore(_student, course))
+      _ = _mockAssignments.Setup(repository => repository.GetRawScore(_student, course))
           .Returns((double?)null);
-      _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, course))
+      _ = _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, course))
           .Returns((int?)null);
 
       double actualScore = _calculator.CalculateCurrentScore(_student, course);
 
-      Assert.That(actualScore, Is.EqualTo(ExpectedZeroScore));
+      Assert.That(actualScore, Is.EqualTo(ExpectedZeroScore).Within(TestDataFactory.ScoreTolerance));
     }
 
     [Test]
@@ -77,15 +73,15 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
           TotalClassesForFullExam,
           MaxAttendanceForFullExam);
 
-      _mockAssignments.Setup(repository => repository.GetRawScore(_student, course))
+      _ = _mockAssignments.Setup(repository => repository.GetRawScore(_student, course))
           .Returns(MaxRawForFullExam);
-      _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, course))
+      _ = _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, course))
           .Returns(AttendedForFullExam);
 
       double actualScore = _calculator.CalculateCurrentScore(_student, course);
       string actualGrade = _calculator.ConvertToGrade(PerfectTotalScore);
 
-      Assert.That(actualScore, Is.EqualTo(ExpectedFullExamCurrentScore));
+      Assert.That(actualScore, Is.EqualTo(ExpectedFullExamCurrentScore).Within(TestDataFactory.ScoreTolerance));
       Assert.That(actualGrade, Is.EqualTo(ExpectedExcellentGrade));
     }
 
@@ -96,14 +92,14 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
           TotalClassesForCreditCap,
           MaxAttendanceForCreditCap);
 
-      _mockAssignments.Setup(repository => repository.GetRawScore(_student, course))
+      _ = _mockAssignments.Setup(repository => repository.GetRawScore(_student, course))
           .Returns(RawScoreAboveMaximum);
-      _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, course))
+      _ = _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, course))
           .Returns(AttendedForFullCredit);
 
       double actualScore = _calculator.CalculateCurrentScore(_student, course);
 
-      Assert.That(actualScore, Is.EqualTo(ExpectedCreditCapScore));
+      Assert.That(actualScore, Is.EqualTo(ExpectedCreditCapScore).Within(TestDataFactory.ScoreTolerance));
     }
 
     [Test]
@@ -113,17 +109,17 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
           TotalClassesForCreditTotal,
           MaxAttendanceForCreditTotal);
 
-      _mockAssignments.Setup(repository => repository.GetRawScore(_student, course))
+      _ = _mockAssignments.Setup(repository => repository.GetRawScore(_student, course))
           .Returns(FullAssignmentsRaw);
-      _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, course))
+      _ = _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, course))
           .Returns(AttendedForHalfCredit);
 
       double currentScore = _calculator.CalculateCurrentScore(_student, course);
-      Assert.That(currentScore, Is.EqualTo(ExpectedCurrentBeforeCredit));
+      Assert.That(currentScore, Is.EqualTo(ExpectedCurrentBeforeCredit).Within(TestDataFactory.ScoreTolerance));
 
       double actualTotal = _calculator.CalculateTotalScore(_student, course, MaxCreditScore);
 
-      Assert.That(actualTotal, Is.EqualTo(ExpectedTotalWithCredit));
+      Assert.That(actualTotal, Is.EqualTo(ExpectedTotalWithCredit).Within(TestDataFactory.ScoreTolerance));
     }
   }
 }

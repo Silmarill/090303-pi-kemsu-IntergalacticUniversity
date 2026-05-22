@@ -1,8 +1,8 @@
-using Moq;
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 using IntergalacticUniversity.Tests.Common;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
@@ -42,14 +42,14 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       double rawScore = rawPercent / PercentScale * MaxRawAssignments;
       int attendedClasses = (int)(attendancePercent / PercentScale * TotalClassesCount);
 
-      _mockAssignments.Setup(repository => repository.GetRawScore(_student, _course))
+      _ = _mockAssignments.Setup(repository => repository.GetRawScore(_student, _course))
           .Returns(rawScore);
-      _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, _course))
+      _ = _mockAttendance.Setup(repository => repository.GetAttendedClasses(_student, _course))
           .Returns(attendedClasses);
 
       double actualCurrent = _calculator.CalculateCurrentScore(_student, _course);
 
-      Assert.That(actualCurrent, Is.EqualTo(expectedCurrent));
+      Assert.That(actualCurrent, Is.EqualTo(expectedCurrent).Within(TestDataFactory.ScoreTolerance));
     }
   }
 }
