@@ -1,6 +1,6 @@
 ﻿using Moq;
-using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 
 namespace IntergalacticUniversity.Tests {
@@ -21,10 +21,10 @@ namespace IntergalacticUniversity.Tests {
       };
 
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
-      _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attended);
+      mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(attended);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScore);
+      mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(rawScore);
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 

@@ -1,6 +1,6 @@
 ﻿using Moq;
-using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
@@ -35,7 +35,8 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
 
       RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      Assert.That(() => calculator.CalculateCurrentScore(_student, _course),
+      Assert.That(
+          () => calculator.CalculateCurrentScore(_student, _course),
           Throws.TypeOf<TimeoutException>());
     }
 
@@ -47,7 +48,8 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
 
       RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
-      Assert.That(() => calculator.CalculateCurrentScore(_student, _course),
+      Assert.That(
+          () => calculator.CalculateCurrentScore(_student, _course),
           Throws.TypeOf<InvalidOperationException>());
     }
 
