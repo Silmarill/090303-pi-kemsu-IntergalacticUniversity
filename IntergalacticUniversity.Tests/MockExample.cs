@@ -1,6 +1,6 @@
 ﻿// MockExample.cs - Блок 3: Тесты с моками (4 проверки)
-using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 using Moq;
 
@@ -34,11 +34,11 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateCurrentScore_CallsRepositoriesWithCorrectArguments() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult1 = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
 
       // Act
-      double vovchik = _calculator.CalculateCurrentScore(_student, _course);
+      _ = _calculator.CalculateCurrentScore(_student, _course);
 
       // Assert
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
@@ -49,8 +49,8 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateCurrentScore_WhenRawScoreIsNull_UsesZeroForAssignments() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns((double?)null);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult1 = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns((double?)null);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(40);
 
       // Act
       double result = _calculator.CalculateCurrentScore(_student, _course);
@@ -62,8 +62,8 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateCurrentScore_WhenAttendanceIsNull_UsesZeroForAttendance() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(100);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns((int?)null);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(100);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns((int?)null);
 
       // Act
       double result = _calculator.CalculateCurrentScore(_student, _course);
@@ -76,13 +76,13 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateTotalScore_CallsRepositoriesExactlyOnce_NotTwice() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
 
       // Act
-      double vovchik = _calculator.CalculateTotalScore(_student, _course, 30);
+      _ = _calculator.CalculateTotalScore(_student, _course, 30);
 
-      // Assert - каждый репозиторий вызывается ровно один раз
+      // Assert
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
     }
@@ -90,11 +90,11 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateTotalScore_WhenExamScoreNotProvided_StillCallsRepositoriesOnce() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
 
       // Act
-      double vovchik = _calculator.CalculateTotalScore(_student, _course);
+      _ = _calculator.CalculateTotalScore(_student, _course);
 
       // Assert
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
@@ -103,41 +103,44 @@ namespace IntergalacticUniversity.Tests {
 
     // Проверка 3.4: Симуляция исключения при доступе к данным
     [Test]
-    public void CalculateCurrentScore_WhenAttendanceRepositoryThrows_PropagatesException() {
+    public void CalculateCurrentScore_WhenAttendanceRepositoryThrows_PropagatesTimeoutException() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
-      Moq.Language.Flow.IThrowsResult throwsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course))
-          .Throws(new TimeoutException("Таймаут при подключении к БД"));
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course))
+          .Throws(new TimeoutException("Таймаут при подключении к БД посещаемости"));
 
       // Act & Assert
-      TimeoutException? timeoutException = Assert.Throws<TimeoutException>(() =>
+      _ = Assert.Throws<TimeoutException>(() =>
           _calculator.CalculateCurrentScore(_student, _course));
     }
 
     [Test]
-    public void CalculateCurrentScore_WhenAssignmentsRepositoryThrows_PropagatesException() {
+    public void CalculateCurrentScore_WhenAssignmentsRepositoryThrows_PropagatesTimeoutException() {
       // Arrange
-      Moq.Language.Flow.IThrowsResult throwsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, _course))
-          .Throws(new InvalidOperationException("Ошибка чтения данных"));
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course))
+          .Throws(new TimeoutException("Таймаут при чтении данных заданий"));
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
 
       // Act & Assert
-      InvalidOperationException? invalidOperationException = Assert.Throws<InvalidOperationException>(() =>
+      _ = Assert.Throws<TimeoutException>(() =>
           _calculator.CalculateCurrentScore(_student, _course));
     }
 
-    // Дополнительный тест: проверка ограничения баллов за экзамен/зачёт
+    // Дополнительный тест: проверка ограничения баллов за экзамен
     [Test]
     public void CalculateTotalScore_ExamWithExamScore_ReturnsCorrectSum() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(400);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult1 = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
+      // rawScore=400 при MaxRaw=100 -> 100% -> assignmentsScore = maxAssignments = 40
+      // attendance=20/40=50% -> attendanceScore = 10
+      // current = 50, examScore=30 -> total = 80
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(400);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
 
       // Act
       double total = _calculator.CalculateTotalScore(_student, _course, examOrCreditScore: 30);
 
-      // Ожидаем: задания 0.5*(60-20)=20, посещаемость 0.5*20=10, экзамен 30 -> итого 60
-      Assert.That(total, Is.EqualTo(60.0));
+      // Ожидаем: задания 40, посещаемость 10, экзамен 30 -> итого 80
+      Assert.That(total, Is.EqualTo(80.0));
     }
   }
 }

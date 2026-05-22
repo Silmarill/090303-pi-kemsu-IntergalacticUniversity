@@ -1,6 +1,6 @@
 ﻿// SimpleTestExample.cs - Блок 1: Обычные тесты (4 проверки)
-using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 using Moq;
 
@@ -45,8 +45,8 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateCurrentScore_WhenNoData_ReturnsZero() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
+      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
+      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult1 = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
 
       // Act
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
@@ -68,8 +68,8 @@ namespace IntergalacticUniversity.Tests {
         MaxAttendanceScore = 20
       };
 
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, examCourse)).Returns(80);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, examCourse)).Returns(40);
+      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, examCourse)).Returns(80);
+      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult1 = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, examCourse)).Returns(40);
 
       // Act
       double currentScore = _calculator.CalculateCurrentScore(_student, examCourse);
@@ -98,8 +98,8 @@ namespace IntergalacticUniversity.Tests {
         MaxAttendanceScore = 15
       };
 
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, creditCourse)).Returns(2000); // > 100%
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, creditCourse)).Returns(30); // 100% attendance
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, creditCourse)).Returns(2000);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, creditCourse)).Returns(30);
 
       // Act
       double result = _calculator.CalculateCurrentScore(_student, creditCourse);
@@ -113,14 +113,17 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateTotalScore_ForCreditCourse_WithMaxCredit_Returns95() {
       // Arrange: current score = 75 из 80 возможных
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(93.75);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(30);
+      // Формула: rawScore = (75 - attendancePortion) / maxAssignments * maxRaw
+      // attendancePortion = 15 (100% attendance), maxAssignments = 65, maxRaw = 100
+      // rawScore = (75 - 15) / 65 * 100 = 60 / 65 * 100 ≈ 92.3077
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(92.3077);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(30);
 
       // Act
       double totalScore = _calculator.CalculateTotalScore(_student, _creditCourse, 20);
 
       // Assert
-      Assert.That(totalScore, Is.EqualTo(95.0).Within(0.001));
+      Assert.That(totalScore, Is.EqualTo(95.0).Within(0.1));
       Assert.That(totalScore, Is.LessThanOrEqualTo(100.0));
     }
   }

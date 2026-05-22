@@ -1,6 +1,6 @@
 ﻿// TestCaseExample.cs - Блок 2: Параметризованные тесты (4 проверки)
-using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Models;
 using IntergalacticUniversity.Core.Services;
 using Moq;
 
@@ -45,12 +45,12 @@ namespace IntergalacticUniversity.Tests {
     }
 
     // Проверка 2.2: Параметризация приведения баллов за задания
-    [TestCase(0, 0)]      // 0% raw -> assignmentsScore = 0
-    [TestCase(3000, 12)]  // 30% raw -> 30% от maxAssignments = 40 -> 12
-    [TestCase(5000, 20)]  // 50% raw -> 20
-    [TestCase(7000, 28)]  // 70% raw -> 28
-    [TestCase(10000, 40)] // 100% raw -> 40
-    [TestCase(15000, 40)] // >100% raw -> caps at 40
+    [TestCase(0, 0)]
+    [TestCase(3000, 12)]
+    [TestCase(5000, 20)]
+    [TestCase(7000, 28)]
+    [TestCase(10000, 40)]
+    [TestCase(15000, 40)]
     public void CalculateCurrentScore_DifferentRawScores_ReturnsCorrectAssignmentsPortion(
         double rawScore, double expectedAssignmentsPortion) {
       // Arrange: Exam course, maxCurrent=60, maxAttendance=20 -> maxAssignments=40
@@ -63,8 +63,8 @@ namespace IntergalacticUniversity.Tests {
         MaxAttendanceScore = 20
       };
 
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, examCourse)).Returns(rawScore);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult1 = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, examCourse)).Returns(40); // 100% attendance
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, examCourse)).Returns(rawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, examCourse)).Returns(40);
 
       // Act
       double result = _calculator.CalculateCurrentScore(_student, examCourse);
@@ -74,10 +74,10 @@ namespace IntergalacticUniversity.Tests {
     }
 
     // Проверка 2.3: Параметризация учёта посещаемости
-    [TestCase(30, 10)]   // 100% attendance -> 10 points
-    [TestCase(15, 5)]    // 50% attendance -> 5 points
-    [TestCase(0, 0)]     // 0% attendance -> 0 points
-    [TestCase(20, 6.666666666666667)] // ~67% attendance -> ~6.67 points
+    [TestCase(30, 10)]
+    [TestCase(15, 5)]
+    [TestCase(0, 0)]
+    [TestCase(20, 6.666666666666667)]
     public void CalculateCurrentScore_DifferentAttendance_ReturnsCorrectAttendancePortion(
         int attendedClasses, double expectedAttendancePortion) {
       // Arrange: Credit course, maxCurrent=80, maxAttendance=10 -> maxAssignments=70
@@ -90,8 +90,8 @@ namespace IntergalacticUniversity.Tests {
         MaxAttendanceScore = 10
       };
 
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, creditCourse)).Returns(100); // 100% assignments
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult1 = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, creditCourse)).Returns(attendedClasses);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, creditCourse)).Returns(100);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, creditCourse)).Returns(attendedClasses);
 
       // Act
       double result = _calculator.CalculateCurrentScore(_student, creditCourse);
@@ -101,12 +101,12 @@ namespace IntergalacticUniversity.Tests {
     }
 
     // Проверка 2.4: Комбинированный параметризованный тест
-    [TestCase(0, 0, 0)]           // 0% raw, 0% attendance -> 0
-    [TestCase(300, 10, 30)]       // 50% raw, 50% attendance -> 30
-    [TestCase(600, 20, 60)]       // 100% raw, 100% attendance -> 60
-    [TestCase(150, 5, 11.25)]     // 25% raw, 25% attendance -> 11.25
-    [TestCase(600, 0, 45)]        // 100% raw, 0% attendance -> 45
-    [TestCase(0, 20, 15)]         // 0% raw, 100% attendance -> 15
+    [TestCase(0, 0, 0)]
+    [TestCase(300, 10, 30)]
+    [TestCase(600, 20, 60)]
+    [TestCase(150, 5, 11.25)]
+    [TestCase(600, 0, 45)]
+    [TestCase(0, 20, 15)]
     public void CalculateCurrentScore_CombinedScenarios_ReturnsExpectedScore(
         double rawScore, int attendedClasses, double expectedScore) {
       // Arrange: Exam course, maxRaw=600, totalClasses=20, maxAttendance=15
@@ -120,8 +120,8 @@ namespace IntergalacticUniversity.Tests {
         MaxAttendanceScore = 15
       };
 
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, course)).Returns(rawScore);
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult1 = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, course)).Returns(attendedClasses);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, course)).Returns(rawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, course)).Returns(attendedClasses);
 
       // Act
       double result = _calculator.CalculateCurrentScore(_student, course);
