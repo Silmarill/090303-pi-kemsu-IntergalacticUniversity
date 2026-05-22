@@ -5,7 +5,7 @@ using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
-  public class RatingCalculatorMockVerificationTests {
+  public class RatingCalculatorTestsBlock3 {
     private const int DefaultAttendance = 10;
     private const int DefaultRawScore = 100;
     private const int FullAttendance = 15;

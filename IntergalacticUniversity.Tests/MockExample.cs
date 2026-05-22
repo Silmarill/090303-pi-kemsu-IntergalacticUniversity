@@ -17,7 +17,6 @@ namespace IntergalacticUniversity.Tests {
         MaxAttendanceScore = 20
       };
 
-      // Мокируем репозитории, чтобы вернуть конкретные значения
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
       _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(20); // 50%
 
@@ -26,10 +25,8 @@ namespace IntergalacticUniversity.Tests {
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
-      // Act
       double total = calculator.CalculateTotalScore(student, course, examOrCreditScore: 30);
 
-      // Assert
       // Ожидаем: задания 0.5*(60-20)=20, посещаемость 0.5*20=10, экзамен 30 -> итого 60
       Assert.That(total, Is.EqualTo(60.0));
     }

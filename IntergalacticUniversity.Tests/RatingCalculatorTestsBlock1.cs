@@ -13,9 +13,9 @@ namespace IntergalacticUniversity.Tests {
     private const double CreditMaxRawScore = 1000;
     private const int CreditTotalClasses = 30;
     private const int CreditMaxAttendanceScore = 15;
-    private const int CreditMaxCurrent = 80; // Лимит сверху для зачета
+    private const int CreditMaxCurrent = 80;
 
-    private const double CreditBonusPoints = 20; // Бонус за зачет
+    private const double CreditBonusPoints = 20;
 
     private Student _student;
     private Course _examCourse;
@@ -54,7 +54,6 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateCurrentScore_WhenAllNull_ReturnsZero() {
-      // ИИ помог с обработкой null через GetValueOrDefault в основном коде
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _examCourse)).Returns((int?)null);
 
@@ -80,8 +79,8 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateCurrentScore_WhenExceedsMaxCurrent_CapsAtMaxCurrent() {
-      const double OverLimitRawScore = 1200; // Больше, чем CreditMaxRawScore
-      const int MaxAttendanceForCredit = 30; // 100% посещений
+      const double OverLimitRawScore = 1200;
+      const int MaxAttendanceForCredit = 30;
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(OverLimitRawScore);
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(MaxAttendanceForCredit);
@@ -92,8 +91,8 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateTotalScore_WithCredit_AddsExamScoreCorrectly() {
-      const double RawScoreForCredit = 875; // 87.5% выполнения
-      const int AttendedClassesForCredit = 30; // 100% посещений
+      const double RawScoreForCredit = 875;
+      const int AttendedClassesForCredit = 30;
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(RawScoreForCredit);
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(AttendedClassesForCredit);

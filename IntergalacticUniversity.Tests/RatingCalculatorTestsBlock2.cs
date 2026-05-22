@@ -6,18 +6,15 @@ using Moq;
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class RatingCalculatorTestsBlock2 {
-    // Конфигурация экзаменационного курса
     private const double ExamMaxRawScore = 1000;
     private const int ExamTotalClasses = 40;
     private const int ExamMaxAttendanceScore = 20;
 
-    // Конфигурация зачетного курса
     private const double CreditMaxRawScore = 1000;
     private const int CreditTotalClasses = 40;
     private const int CreditMaxAttendanceScore = 10;
-    private const int CreditMaxCurrent = 80; // Лимит сверху для зачета
+    private const int CreditMaxCurrent = 80;
 
-    // Параметры для комбинированного теста
     private const int CustomExamMaxRawScore = 600;
     private const int CustomExamTotalClasses = 20;
     private const int CustomExamMaxAttendanceScore = 15;
