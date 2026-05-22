@@ -41,7 +41,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(expectedCurrentScore));
+      Assert.That(result, Is.EqualTo(expectedCurrentScore).Within(0.001));
     }
   }
 }

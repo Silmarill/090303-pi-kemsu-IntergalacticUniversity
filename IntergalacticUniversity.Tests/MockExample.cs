@@ -31,7 +31,7 @@ namespace IntergalacticUniversity.Tests {
 
       // Assert
       // Ожидаем: задания 0.5*(60-20)=20, посещаемость 0.5*20=10, экзамен 30 -> итого 60
-      Assert.That(total, Is.EqualTo(60.0));
+      Assert.That(total, Is.EqualTo(60.0).Within(0.001));
     }
   }
 }

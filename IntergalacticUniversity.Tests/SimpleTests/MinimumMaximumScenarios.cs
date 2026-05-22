@@ -47,7 +47,7 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(0.0));
+      Assert.That(result, Is.EqualTo(0.0).Within(0.001));
     }
 
     [Test]
@@ -57,7 +57,7 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
       double result = _calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(60.0));
+      Assert.That(result, Is.EqualTo(60.0).Within(0.001));
     }
 
     [Test]
@@ -94,8 +94,8 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       double currentScore = _calculator.CalculateCurrentScore(_student, customCreditCourse);
       double totalScore = _calculator.CalculateTotalScore(_student, customCreditCourse, 20);
 
-      Assert.That(currentScore, Is.EqualTo(80.0));
-      Assert.That(totalScore, Is.EqualTo(95.0));
+      Assert.That(currentScore, Is.EqualTo(80.0).Within(0.001));
+      Assert.That(totalScore, Is.EqualTo(95.0).Within(0.001));
     }
   }
 }

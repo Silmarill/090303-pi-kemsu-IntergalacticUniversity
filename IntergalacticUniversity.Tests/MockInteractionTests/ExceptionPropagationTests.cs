@@ -44,13 +44,13 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
     public void CalculateCurrentScore_WhenAssignmentsRepositoryThrowsException_PropagatesException() {
       _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
       _mockAssignments.Setup(r => r.GetRawScore(_student, _course))
-          .Throws<InvalidOperationException>();
+          .Throws<TimeoutException>();
 
       RatingCalculator calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
 
       Assert.That(
           () => calculator.CalculateCurrentScore(_student, _course),
-          Throws.TypeOf<InvalidOperationException>());
+          Throws.TypeOf<TimeoutException>());
     }
 
     [Test]

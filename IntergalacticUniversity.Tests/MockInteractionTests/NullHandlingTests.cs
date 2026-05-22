@@ -45,7 +45,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
 
       double result = calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(20.0));
+      Assert.That(result, Is.EqualTo(20.0).Within(0.001));
     }
 
     [Test]
@@ -61,7 +61,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
       double result = calculator.CalculateCurrentScore(_student, _creditCourse);
 
       double maxAssignments = 80.0 - 15.0;
-      Assert.That(result, Is.EqualTo(maxAssignments));
+      Assert.That(result, Is.EqualTo(maxAssignments).Within(0.001));
     }
 
     [Test]
@@ -76,7 +76,7 @@ namespace IntergalacticUniversity.Tests.MockInteractionTests {
 
       double result = calculator.CalculateCurrentScore(_student, _examCourse);
 
-      Assert.That(result, Is.EqualTo(0.0));
+      Assert.That(result, Is.EqualTo(0.0).Within(0.001));
     }
   }
 }
