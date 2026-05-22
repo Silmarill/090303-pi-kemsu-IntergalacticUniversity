@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]

@@ -1,6 +1,6 @@
-﻿using Moq;
-using IntergalacticUniversity.Core.Interfaces;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
@@ -11,8 +11,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
     public void SetUp() {
       _calculator = new RatingCalculator(
         new Mock<IAttendanceRepository>().Object,
-        new Mock<IAssignmentsRepository>().Object
-      );
+        new Mock<IAssignmentsRepository>().Object);
     }
 
     [TestCase(49, "Неудовлетворительно")]

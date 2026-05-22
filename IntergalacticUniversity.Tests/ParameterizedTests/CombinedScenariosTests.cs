@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
@@ -39,12 +39,12 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       Assert.That(result, Is.EqualTo(70.0 + expectedAttendancePart));
     }
 
-    [TestCase(0.0, 0.0, 0.0)]
-    [TestCase(0.5, 0.5, 29.25)]
-    [TestCase(1.0, 1.0, 60.0)]
-    [TestCase(0.3, 1.0, 28.5)]
+    [TestCase(0.0, 0, 0.0)]
+    [TestCase(0.5, 10, 30.0)]
+    [TestCase(1.0, 20, 60.0)]
+    [TestCase(0.3, 20, 28.5)]
     public void CalculateCurrentScore_CombinedPercents_ReturnsExpected(
-        double rawPercent, double attendancePercent, double expectedCurrent) {
+    double rawPercent, int attended, double expectedCurrent) {
       Course course = new Course {
         Type = ExamType.Exam,
         MaxRawAssignmentsScore = 600,
@@ -53,7 +53,7 @@ namespace IntergalacticUniversity.Tests.ParameterizedTests {
       };
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, course)).Returns(rawPercent * 600);
-      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, course)).Returns((int)(attendancePercent * 20));
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, course)).Returns(attended);
 
       double result = _calculator.CalculateCurrentScore(_student, course);
 
