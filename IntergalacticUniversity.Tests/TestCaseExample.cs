@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -66,8 +66,8 @@ namespace IntergalacticUniversity.Tests {
 
       double expectedTotal = expectedAssignmentsScore + 20;
 
-      // Assert
-      Assert.That(result, Is.EqualTo(expectedTotal));
+      // Assert - добавлен допуск для double
+      Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
 
     // Проверка 2.3: Параметризация учёта посещаемости
@@ -95,15 +95,19 @@ namespace IntergalacticUniversity.Tests {
 
       double expectedTotal = 70 + expectedAttendanceScore;
 
-      // Assert
-      Assert.That(result, Is.EqualTo(expectedTotal));
+      // Assert - добавлен допуск для double
+      Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
 
     // Проверка 2.4: Комбинированный параметризованный тест
-    [TestCase(0, 0, 0)]      // 0% заданий, 0% посещаемости → 0
-    [TestCase(50, 50, 35)]   // 50% заданий (20) + 50% посещаемости (7.5) = 27.5? Давайте пересчитаем
-    [TestCase(100, 50, 47.5)] // 100% заданий (40) + 50% посещаемости (7.5) = 47.5
-    [TestCase(100, 100, 60)]  // 100% заданий + 100% посещаемости → 60
+    // Исправлены ожидаемые значения в соответствии с формулой:
+    // maxAssignments = maxCurrent - maxAttendance = 60 - 15 = 45
+    // assignmentsScore = rawPercent * maxAssignments
+    // attendanceScore = attendancePercent * maxAttendance
+    [TestCase(0, 0, 0)]        // 0% + 0% = 0
+    [TestCase(50, 50, 30)]     // 22.5 + 7.5 = 30
+    [TestCase(100, 50, 52.5)]  // 45 + 7.5 = 52.5
+    [TestCase(100, 100, 60)]   // 45 + 15 = 60
     public void CalculateCurrentScore_CombinedScenarios_ReturnsExpectedScore(
         double rawPercent, double attendancePercent, double expectedScore) {
       // Arrange
@@ -127,7 +131,6 @@ namespace IntergalacticUniversity.Tests {
       double result = _calculator.CalculateCurrentScore(_student, course);
 
       // Assert
-      // Допускаем погрешность из-за double
       Assert.That(result, Is.EqualTo(expectedScore).Within(0.01));
     }
   }

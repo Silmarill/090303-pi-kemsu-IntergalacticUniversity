@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -126,7 +126,7 @@ namespace IntergalacticUniversity.Tests {
       Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
 
       // Act & Assert
-      _ = Assert.Throws<TimeoutException>(() =>
+      TimeoutException? timeoutException = Assert.Throws<TimeoutException>(() =>
           _calculator.CalculateCurrentScore(_student, _course));
     }
 

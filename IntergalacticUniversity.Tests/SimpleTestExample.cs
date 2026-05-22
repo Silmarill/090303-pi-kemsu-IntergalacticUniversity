@@ -1,14 +1,13 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
   public class SimpleTestExample {
     private Student _student;
     private Course _examCourse;
-    private Course _creditCourse;
     private Mock<IAttendanceRepository> _mockAttendance;
     private Mock<IAssignmentsRepository> _mockAssignments;
     private RatingCalculator _calculator;
@@ -24,15 +23,6 @@ namespace IntergalacticUniversity.Tests {
         MaxRawAssignmentsScore = 80,
         TotalClasses = 40,
         MaxAttendanceScore = 20
-      };
-
-      _creditCourse = new Course {
-        CourseId = 102,
-        Name = "Зачётный курс",
-        Type = ExamType.Credit,
-        MaxRawAssignmentsScore = 100,
-        TotalClasses = 30,
-        MaxAttendanceScore = 15
       };
 
       _mockAttendance = new Mock<IAttendanceRepository>();
@@ -104,13 +94,29 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateTotalScore_ForCreditCourse_AddsCreditScoreCorrectly() {
       // Arrange
-      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(15);
-      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(100);
+      // maxCurrent = 80, maxAttendance = 15 → maxAssignments = 65
+      // Чтобы получить current = 75, нужно:
+      // assignments: 100% = 65 баллов
+      // attendance: 10 баллов из 15 (66.7% посещаемости = 20 занятий из 30)
+      Course creditCourse = new Course {
+        CourseId = 104,
+        Name = "Зачётный курс",
+        Type = ExamType.Credit,
+        MaxRawAssignmentsScore = 100,
+        TotalClasses = 30,
+        MaxAttendanceScore = 15
+      };
+
+      // 100% заданий = 65 баллов
+      // 20 посещённых занятий из 30 = 66.7% = 10 баллов
+      // Итого current = 75
+      Moq.Language.Flow.IReturnsResult<IAttendanceRepository> returnsResult = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, creditCourse)).Returns(20);
+      Moq.Language.Flow.IReturnsResult<IAssignmentsRepository> returnsResult1 = _mockAssignments.Setup(r => r.GetRawScore(_student, creditCourse)).Returns(100);
 
       // Act
-      double totalScore = _calculator.CalculateTotalScore(_student, _creditCourse, examOrCreditScore: 20);
+      double totalScore = _calculator.CalculateTotalScore(_student, creditCourse, examOrCreditScore: 20);
 
-      // Assert
+      // Assert: 75 + 20 = 95
       Assert.That(totalScore, Is.EqualTo(95.0));
     }
   }
