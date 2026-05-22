@@ -126,7 +126,9 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       maxRawScore = 1000.0;
       totalClasses = 20;
       maxAttendanceScore = 15;
-      rawScoreFor75Current = 923.0;
+
+      rawScoreFor75Current = 60.0 / 65.0 * 1000.0;
+
       attendedFull = totalClasses;
       creditMaxScore = 20.0;
       expectedTotal = 95.0;
@@ -143,8 +145,7 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
       double actualTotal = _calculator.CalculateTotalScore(_student, course, examOrCreditScore: creditMaxScore);
 
-      // DeepSeek: обратил внимание на погрешность вычислений с double
-      Assert.That(actualTotal, Is.EqualTo(expectedTotal));
+      Assert.That(actualTotal, Is.EqualTo(expectedTotal).Within(1e-10));
     }
   }
 }
