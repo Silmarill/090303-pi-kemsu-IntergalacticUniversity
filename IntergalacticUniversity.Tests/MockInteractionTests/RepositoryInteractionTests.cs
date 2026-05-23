@@ -1,9 +1,9 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
-namespace IntergalacticUniversity.Tests {
+namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
   public class RepositoryInteractionTests {
     private Student? _student;
@@ -59,18 +59,15 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateCurrentScore_CallsRepositoriesExactlyOnceWithCorrectArguments() {
-      double result;
-      result = _calculator!.CalculateCurrentScore(_student!, _course!);
+      _ = _calculator!.CalculateCurrentScore(_student!, _course!);
 
       _mockAttendance!.Verify(
           r => r.GetAttendedClasses(_student!, _course!),
-          Times.Once
-      );
+          Times.Once);
 
       _mockAssignments!.Verify(
           r => r.GetRawScore(_student!, _course!),
-          Times.Once
-      );
+          Times.Once);
     }
   }
 }

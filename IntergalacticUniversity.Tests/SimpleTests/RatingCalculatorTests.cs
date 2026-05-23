@@ -1,15 +1,15 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests.SimpleTests {
   [TestFixture]
   public class RatingCalculatorTests {
-    private Student? _student;
-    private Mock<IAttendanceRepository>? _mockAttendance;
-    private Mock<IAssignmentsRepository>? _mockAssignments;
-    private RatingCalculator? _calculator;
+    private Student _student;
+    private Mock<IAttendanceRepository> _mockAttendance;
+    private Mock<IAssignmentsRepository> _mockAssignments;
+    private RatingCalculator _calculator;
 
     [SetUp]
     public void SetUp() {
@@ -23,16 +23,11 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
       _calculator = new RatingCalculator(
         _mockAttendance.Object,
-        _mockAssignments.Object
-      );
+        _mockAssignments.Object);
     }
 
     [TearDown]
     public void TearDown() {
-      _student = null;
-      _mockAttendance = null;
-      _mockAssignments = null;
-      _calculator = null;
     }
 
     [Test]
@@ -46,16 +41,16 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 20
       };
 
-      _ = _mockAttendance!
-          .Setup(r => r.GetAttendedClasses(_student!, course))
+      _ = _mockAttendance
+          .Setup(r => r.GetAttendedClasses(_student, course))
           .Returns(null as int?);
 
-      _ = _mockAssignments!
-          .Setup(r => r.GetRawScore(_student!, course))
+      _ = _mockAssignments
+          .Setup(r => r.GetRawScore(_student, course))
           .Returns(null as double?);
 
       double result;
-      result = _calculator!.CalculateCurrentScore(_student!, course);
+      result = _calculator.CalculateCurrentScore(_student, course);
 
       double expectedZeroScore;
       expectedZeroScore = 0.0;
@@ -82,16 +77,16 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 20
       };
 
-      _ = _mockAttendance!
-          .Setup(r => r.GetAttendedClasses(_student!, course))
+      _ = _mockAttendance
+          .Setup(r => r.GetAttendedClasses(_student, course))
           .Returns(fullAttendance);
 
-      _ = _mockAssignments!
-          .Setup(r => r.GetRawScore(_student!, course))
+      _ = _mockAssignments
+          .Setup(r => r.GetRawScore(_student, course))
           .Returns(fullRawScore);
 
       double currentScore;
-      currentScore = _calculator!.CalculateCurrentScore(_student!, course);
+      currentScore = _calculator.CalculateCurrentScore(_student, course);
 
       Assert.That(currentScore, Is.EqualTo(expectedExamMaxCurrent));
     }
@@ -105,7 +100,7 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
       expectedExcellentGrade = "Отлично";
 
       string grade;
-      grade = _calculator!.ConvertToGrade(perfectScore);
+      grade = _calculator.ConvertToGrade(perfectScore);
 
       Assert.That(grade, Is.EqualTo(expectedExcellentGrade));
     }
@@ -130,16 +125,16 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 15
       };
 
-      _ = _mockAttendance!
-          .Setup(r => r.GetAttendedClasses(_student!, course))
+      _ = _mockAttendance
+          .Setup(r => r.GetAttendedClasses(_student, course))
           .Returns(fullAttendance);
 
-      _ = _mockAssignments!
-          .Setup(r => r.GetRawScore(_student!, course))
+      _ = _mockAssignments
+          .Setup(r => r.GetRawScore(_student, course))
           .Returns(excessiveRawScore);
 
       double currentScore;
-      currentScore = _calculator!.CalculateCurrentScore(_student!, course);
+      currentScore = _calculator.CalculateCurrentScore(_student, course);
 
       Assert.That(currentScore, Is.EqualTo(expectedCreditMaxCurrent));
     }
@@ -167,16 +162,16 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
         MaxAttendanceScore = 15
       };
 
-      _ = _mockAttendance!
-          .Setup(r => r.GetAttendedClasses(_student!, course))
+      _ = _mockAttendance
+          .Setup(r => r.GetAttendedClasses(_student, course))
           .Returns(fullAttendance);
 
-      _ = _mockAssignments!
-          .Setup(r => r.GetRawScore(_student!, course))
+      _ = _mockAssignments
+          .Setup(r => r.GetRawScore(_student, course))
           .Returns(requiredRawScoreFor75Current);
 
       double totalScore;
-      totalScore = _calculator!.CalculateTotalScore(_student!, course, maxCreditExamScore);
+      totalScore = _calculator.CalculateTotalScore(_student, course, maxCreditExamScore);
 
       Assert.That(totalScore, Is.EqualTo(expectedTotalScore));
     }

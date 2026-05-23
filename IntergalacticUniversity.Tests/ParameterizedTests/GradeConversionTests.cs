@@ -1,18 +1,26 @@
-﻿using IntergalacticUniversity.Core.Services;
+﻿using IntergalacticUniversity.Core.Interfaces;
+using IntergalacticUniversity.Core.Services;
+using Moq;
 
-namespace IntergalacticUniversity.Tests {
+namespace IntergalacticUniversity.Tests.ParameterizedTests {
   [TestFixture]
   public class GradeConversionTests {
-    private RatingCalculator? _calculator;
+    private RatingCalculator _calculator;
 
     [SetUp]
     public void SetUp() {
-      _calculator = new RatingCalculator(null!, null!);
+      Mock<IAttendanceRepository> mockAttendance;
+      mockAttendance = new Mock<IAttendanceRepository>();
+
+      Mock<IAssignmentsRepository> mockAssignments;
+      mockAssignments = new Mock<IAssignmentsRepository>();
+
+      _calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
     }
 
     [TearDown]
     public void TearDown() {
-      _calculator = null;
+      _calculator = null!;
     }
 
     [TestCase(49, "Неудовлетворительно")]
@@ -24,7 +32,7 @@ namespace IntergalacticUniversity.Tests {
     [TestCase(100, "Отлично")]
     public void ConvertToGrade_WithVariousScores_ReturnsExpectedGrade(double totalScore, string expectedGrade) {
       string actualGrade;
-      actualGrade = _calculator!.ConvertToGrade(totalScore);
+      actualGrade = _calculator.ConvertToGrade(totalScore);
 
       Assert.That(actualGrade, Is.EqualTo(expectedGrade));
     }

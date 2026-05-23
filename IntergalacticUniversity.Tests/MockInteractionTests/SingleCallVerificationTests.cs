@@ -1,16 +1,16 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
-namespace IntergalacticUniversity.Tests {
+namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
   public class SingleCallVerificationTests {
-    private Student? _student;
-    private Course? _course;
-    private Mock<IAttendanceRepository>? _mockAttendance;
-    private Mock<IAssignmentsRepository>? _mockAssignments;
-    private RatingCalculator? _calculator;
+    private Student _student;
+    private Course _course;
+    private Mock<IAttendanceRepository> _mockAttendance;
+    private Mock<IAssignmentsRepository> _mockAssignments;
+    private RatingCalculator _calculator;
 
     [SetUp]
     public void SetUp() {
@@ -50,11 +50,6 @@ namespace IntergalacticUniversity.Tests {
 
     [TearDown]
     public void TearDown() {
-      _student = null;
-      _course = null;
-      _mockAttendance = null;
-      _mockAssignments = null;
-      _calculator = null;
     }
 
     [Test]
@@ -62,18 +57,15 @@ namespace IntergalacticUniversity.Tests {
       double examScore;
       examScore = 30.0;
 
-      double totalScore;
-      totalScore = _calculator!.CalculateTotalScore(_student!, _course!, examScore);
+      _ = _calculator.CalculateTotalScore(_student, _course, examScore);
 
-      _mockAttendance!.Verify(
-          r => r.GetAttendedClasses(It.IsAny<Student>(), It.IsAny<Course>()),
-          Times.Once
-      );
+      _mockAttendance.Verify(
+          r => r.GetAttendedClasses(_student, _course),
+          Times.Once);
 
-      _mockAssignments!.Verify(
-          r => r.GetRawScore(It.IsAny<Student>(), It.IsAny<Course>()),
-          Times.Once
-      );
+      _mockAssignments.Verify(
+          r => r.GetRawScore(_student, _course),
+          Times.Once);
     }
   }
 }

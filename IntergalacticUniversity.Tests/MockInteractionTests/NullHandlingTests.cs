@@ -1,9 +1,9 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
-namespace IntergalacticUniversity.Tests {
+namespace IntergalacticUniversity.Tests.MockInteractionTests {
   [TestFixture]
   public class NullHandlingTests {
     private Student? _student;
@@ -49,6 +49,9 @@ namespace IntergalacticUniversity.Tests {
       double expectedAttendanceOnlyScore;
       expectedAttendanceOnlyScore = 20.0;
 
+      double tolerance;
+      tolerance = 0.001;
+
       _ = _mockAttendance!
           .Setup(r => r.GetAttendedClasses(_student!, _course!))
           .Returns(fullAttendance);
@@ -62,7 +65,7 @@ namespace IntergalacticUniversity.Tests {
       double result;
       result = _calculator.CalculateCurrentScore(_student!, _course!);
 
-      Assert.That(result, Is.EqualTo(expectedAttendanceOnlyScore));
+      Assert.That(result, Is.EqualTo(expectedAttendanceOnlyScore).Within(tolerance));
     }
 
     [Test]
@@ -72,6 +75,9 @@ namespace IntergalacticUniversity.Tests {
 
       double expectedAssignmentsOnlyScore;
       expectedAssignmentsOnlyScore = 32.0;
+
+      double tolerance;
+      tolerance = 0.001;
 
       _ = _mockAttendance!
           .Setup(r => r.GetAttendedClasses(_student!, _course!))
@@ -86,7 +92,7 @@ namespace IntergalacticUniversity.Tests {
       double result;
       result = _calculator.CalculateCurrentScore(_student!, _course!);
 
-      Assert.That(result, Is.EqualTo(expectedAssignmentsOnlyScore));
+      Assert.That(result, Is.EqualTo(expectedAssignmentsOnlyScore).Within(tolerance));
     }
   }
 }
