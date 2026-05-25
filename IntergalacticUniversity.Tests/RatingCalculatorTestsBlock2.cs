@@ -102,16 +102,14 @@ namespace IntergalacticUniversity.Tests {
       Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
 
-    // Проверка 2.4: ИСПРАВЛЕННЫЙ КОМБИНИРОВАННЫЙ ТЕСТ
-    // Используем веса 45 (задания) и 15 (посещаемость), как в реальном проекте
+    // Проверка 2.4:
     [TestCase(0, 0, 0)]
-    [TestCase(600, 15, 60)] // 100% заданий + 100% посещений
-    [TestCase(300, 7, 29.5)] // 50% заданий (22.5) + 7 посещений (7) = 29.5
-    [TestCase(400, 8, 38)] // 66% заданий (30) + 8 посещений (8) = 38
-    [TestCase(500, 10, 47.5)] // 83% заданий (37.5) + 10 посещений (10) = 47.5
+    [TestCase(600, 15, 60)]
+    [TestCase(300, 7, 29.5)]
+    [TestCase(400, 8, 38)]
+    [TestCase(500, 10, 47.5)]
     public void CalculateCurrentScore_CombinedPercentages_ReturnsExpectedCurrent(
         double rawScore, int attended, double expectedCurrent) {
-
       Course customCourse = new Course {
         CourseId = 3,
         Name = "Комбинированный курс",
