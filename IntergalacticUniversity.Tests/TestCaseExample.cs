@@ -32,8 +32,8 @@ namespace IntergalacticUniversity.Tests {
     [TestCase(86, "Отлично")]
     [TestCase(100, "Отлично")]
     public void ConvertToGrade_VariousScores_ReturnsExpectedGrade(double totalScore, string expectedGrade) {
-      var mockAttendance = new Mock<IAttendanceRepository>();
-      var mockAssignments = new Mock<IAssignmentsRepository>();
+      Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
+      Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
       string grade = calculator.ConvertToGrade(totalScore);

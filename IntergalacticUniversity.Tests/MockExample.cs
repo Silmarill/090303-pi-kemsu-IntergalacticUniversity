@@ -68,10 +68,10 @@ namespace IntergalacticUniversity.Tests {
     // Проверка 3.3: Отсутствие повторных вызовов репозиториев
     [Test]
     public void CalculateTotalScore_DoesNotCallRepositoriesTwice() {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(20);
 
-      _calculator.CalculateTotalScore(_student, _course, 30);
+      _ = _calculator.CalculateTotalScore(_student, _course, 30);
 
       _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
       _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
@@ -80,7 +80,7 @@ namespace IntergalacticUniversity.Tests {
     // Проверка 3.4: Симуляция исключений
     [Test]
     public void CalculateCurrentScore_WhenAttendanceRepositoryThrows_PropagatesException() {
-      _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(50);
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course))
           .Throws(new TimeoutException("Таймаут при подключении к БД"));
 

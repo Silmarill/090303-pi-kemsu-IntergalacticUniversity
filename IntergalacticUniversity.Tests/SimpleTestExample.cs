@@ -25,34 +25,6 @@ namespace IntergalacticUniversity.Tests {
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
-    private static Course CreateExamCourse(
-        double maxRaw = 100,
-        int totalClasses = 40,
-        int maxAttendance = 20) {
-      return new Course {
-        CourseId = 1,
-        Name = "Экзаменационный курс",
-        Type = ExamType.Exam,
-        MaxRawAssignmentsScore = maxRaw,
-        TotalClasses = totalClasses,
-        MaxAttendanceScore = maxAttendance
-      };
-    }
-
-    private static Course CreateCreditCourse(
-        double maxRaw = 100,
-        int totalClasses = 30,
-        int maxAttendance = 15) {
-      return new Course {
-        CourseId = 2,
-        Name = "Зачётный курс",
-        Type = ExamType.Credit,
-        MaxRawAssignmentsScore = maxRaw,
-        TotalClasses = totalClasses,
-        MaxAttendanceScore = maxAttendance
-      };
-    }
-
     [Test]
     public void CalculateCurrentScore_WhenNoData_ReturnsZero() {
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _examCourse)).Returns((double?)null);
@@ -66,12 +38,12 @@ namespace IntergalacticUniversity.Tests {
     [Test]
     public void CalculateCurrentScore_WhenMaxValues_Returns60AndGradeExcellent() {
       Course examCourse = CreateExamCourse(maxRaw: 80, totalClasses: 40, maxAttendance: 20);
-      _mockAssignments.Setup(r => r.GetRawScore(_student, examCourse)).Returns(80);
-      _mockAttendance.Setup(r => r.GetAttendedClasses(_student, examCourse)).Returns(40);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, examCourse)).Returns(80);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, examCourse)).Returns(40);
 
       double currentScore = _calculator.CalculateCurrentScore(_student, examCourse);
 
-      RatingCalculator calculatorForGrade = new RatingCalculator(
+      var calculatorForGrade = new RatingCalculator(
           new Mock<IAttendanceRepository>().Object,
           new Mock<IAssignmentsRepository>().Object);
       string grade = calculatorForGrade.ConvertToGrade(100);
@@ -105,6 +77,35 @@ namespace IntergalacticUniversity.Tests {
 
       Assert.That(totalScore, Is.EqualTo(95.0).Within(0.1));
       Assert.That(totalScore, Is.LessThanOrEqualTo(100.0));
+    }
+
+    // Private helper methods - должны идти после всех public members
+    private static Course CreateExamCourse(
+        double maxRaw = 100,
+        int totalClasses = 40,
+        int maxAttendance = 20) {
+      return new Course {
+        CourseId = 1,
+        Name = "Экзаменационный курс",
+        Type = ExamType.Exam,
+        MaxRawAssignmentsScore = maxRaw,
+        TotalClasses = totalClasses,
+        MaxAttendanceScore = maxAttendance
+      };
+    }
+
+    private static Course CreateCreditCourse(
+        double maxRaw = 100,
+        int totalClasses = 30,
+        int maxAttendance = 15) {
+      return new Course {
+        CourseId = 2,
+        Name = "Зачётный курс",
+        Type = ExamType.Credit,
+        MaxRawAssignmentsScore = maxRaw,
+        TotalClasses = totalClasses,
+        MaxAttendanceScore = maxAttendance
+      };
     }
   }
 }
