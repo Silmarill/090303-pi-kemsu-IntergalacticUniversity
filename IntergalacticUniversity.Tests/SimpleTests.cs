@@ -99,7 +99,7 @@ namespace IntergalacticUniversity.Tests {
       Mock<IAttendanceRepository> mockAttendance = new Mock<IAttendanceRepository>();
 
       // Настраиваем так, чтобы посещаемость дала 10 баллов
-      _ = mockAttendance.Setup(repo => repo.GetAttendedClasses(student, course)).Returns(27);
+      _ = mockAttendance.Setup(repo => repo.GetAttendedClasses(student, course)).Returns(20);
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
       _ = mockAssignments.Setup(repo => repo.GetRawScore(student, course)).Returns(1000); // 65 баллов за задания
