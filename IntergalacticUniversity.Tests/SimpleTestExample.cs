@@ -43,7 +43,7 @@ namespace IntergalacticUniversity.Tests {
 
       double currentScore = _calculator.CalculateCurrentScore(_student, examCourse);
 
-      var calculatorForGrade = new RatingCalculator(
+      RatingCalculator calculatorForGrade = new RatingCalculator(
           new Mock<IAttendanceRepository>().Object,
           new Mock<IAssignmentsRepository>().Object);
       string grade = calculatorForGrade.ConvertToGrade(100);
