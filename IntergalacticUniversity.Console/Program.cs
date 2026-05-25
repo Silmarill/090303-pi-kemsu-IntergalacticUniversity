@@ -68,7 +68,6 @@ namespace IntergalacticUniversity {
 
       string grade = calculator.ConvertToGrade(totalScore);
 
-      Console.WriteLine("\n========================================");
       Console.WriteLine($"Студент: {student.Name}");
       Console.WriteLine($"Курс: {course.Name} ({course.Type})");
       Console.WriteLine($"Посещаемость: {attended} / {totalClasses} ({100.0 * attended / totalClasses:F1}% = {1.0 * attended / totalClasses * maxAttendance:F0} баллов из {maxAttendance})");
@@ -85,7 +84,6 @@ namespace IntergalacticUniversity {
 
       Console.WriteLine($"Итоговый суммарный балл: {totalScore:F0} из 100");
       Console.WriteLine($"Оценка: {grade}");
-      Console.WriteLine("========================================\n");
 
       Console.WriteLine("Нажмите любую клавишу для выхода...");
       _ = Console.ReadKey();

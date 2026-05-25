@@ -65,9 +65,13 @@ namespace IntergalacticUniversity.Tests {
     // Проверка 3.4:
     [Test]
     public void CalculateCurrentScore_WhenRepositoryThrowsException_ThrowsSameException() {
+      _ = _mockAssignments.Setup(m => m.GetRawScore(_student, _course)).Returns(100);
+
       _ = _mockAttendance.Setup(m => m.GetAttendedClasses(_student, _course)).Throws<TimeoutException>();
 
-      _ = Assert.Throws<TimeoutException>(() => _calculator.CalculateCurrentScore(_student, _course));
+      TimeoutException? ex = Assert.Throws<TimeoutException>(() => _calculator.CalculateCurrentScore(_student, _course));
+
+      _mockAssignments.Verify(m => m.GetRawScore(_student, _course), Times.Once);
     }
   }
 }
