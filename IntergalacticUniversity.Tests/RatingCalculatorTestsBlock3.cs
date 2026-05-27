@@ -18,13 +18,24 @@ namespace IntergalacticUniversity.Tests {
     private Student _student;
     private Course _course;
 
+    private Course CreateExamCourse() {
+      return new Course {
+        CourseId = 42,
+        Name = "Exam Course for Testing",
+        Type = ExamType.Exam,
+        MaxRawAssignmentsScore = 1000,
+        TotalClasses = 30,
+        MaxAttendanceScore = 20
+      };
+    }
+
     [SetUp]
     public void Setup() {
       _mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
       _mockAssignments = new Mock<IAssignmentsRepository>(MockBehavior.Strict);
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
-      _student = new Mock<Student>().Object;
-      _course = new Mock<Course>().Object;
+      _student = new Student { Id = 1, Name = "Test Student" };
+      _course = CreateExamCourse();
     }
 
     // Проверка 3.1:
@@ -47,7 +58,7 @@ namespace IntergalacticUniversity.Tests {
 
       double result = _calculator.CalculateCurrentScore(_student, _course);
 
-      Assert.That(result, Is.EqualTo(FullAttendance));
+      Assert.That(result, Is.EqualTo(10.0).Within(0.001));
     }
 
     // Проверка 3.3:

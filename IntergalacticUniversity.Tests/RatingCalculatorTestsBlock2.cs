@@ -54,7 +54,6 @@ namespace IntergalacticUniversity.Tests {
       _calculator = new RatingCalculator(_mockAttendance.Object, _mockAssignments.Object);
     }
 
-    // Проверка 2.1:
     [TestCase(49, "Неудовлетворительно")]
     [TestCase(51, "Удовлетворительно")]
     [TestCase(60, "Удовлетворительно")]
@@ -67,7 +66,6 @@ namespace IntergalacticUniversity.Tests {
       Assert.That(result, Is.EqualTo(expectedGrade));
     }
 
-    // Проверка 2.2:
     [TestCase(0, 0)]
     [TestCase(300, 12)]
     [TestCase(1000, 40)]
@@ -84,7 +82,6 @@ namespace IntergalacticUniversity.Tests {
       Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
 
-    // Проверка 2.3:
     [TestCase(40, 10)]
     [TestCase(20, 5)]
     [TestCase(0, 0)]
@@ -102,7 +99,6 @@ namespace IntergalacticUniversity.Tests {
       Assert.That(result, Is.EqualTo(expectedTotal).Within(0.001));
     }
 
-    // Проверка 2.4:
     [TestCase(0, 0, 0)]
     [TestCase(600, 15, 60)]
     [TestCase(300, 7, 29.5)]

@@ -91,10 +91,14 @@ namespace IntergalacticUniversity.Tests {
 
     [Test]
     public void CalculateTotalScore_WithCredit_AddsExamScoreCorrectly() {
-      // Ручной расчет для получения 75 текущего балла:
-      // 75 = (Задания * 60/1000) + (Посещение * 20/30)
-      // 75 = (916 * 0.06) + (30 * 0.666) ≈ 55 + 20 = 75
-      const double RawScoreForCredit = 916;
+      // Ручной расчет:
+      // current = (raw / 1000) * 60 + (30 / 30) * 20 = 75
+      // (raw / 1000) * 60 + 20 = 75
+      // (raw / 1000) * 60 = 55
+      // raw / 1000 = 55 / 60 = 0.916666...
+      // raw = 916.666...
+
+      const double RawScoreForCredit = 916.6666666666666;
       const int AttendedClassesForCredit = 30;
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(RawScoreForCredit);
