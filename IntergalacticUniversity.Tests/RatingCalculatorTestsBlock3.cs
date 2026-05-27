@@ -18,21 +18,6 @@ namespace IntergalacticUniversity.Tests {
     private Student _student;
     private Course _course;
 
-    // SA1202: Public members (тесты) должны быть перед private методами.
-    // Сначала идут private поля, потом Helper-метод, потом SetUp, потом Тесты.
-
-    // Helper method to create a real course object with valid data
-    private Course CreateExamCourse() {
-      return new Course {
-        CourseId = 42,
-        Name = "Exam Course for Testing",
-        Type = ExamType.Exam,
-        MaxRawAssignmentsScore = 1000,
-        TotalClasses = 30,
-        MaxAttendanceScore = 20
-      };
-    }
-
     [SetUp]
     public void Setup() {
       _mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
@@ -87,6 +72,17 @@ namespace IntergalacticUniversity.Tests {
       TimeoutException? ex = Assert.Throws<TimeoutException>(() => _calculator.CalculateCurrentScore(_student, _course));
 
       _mockAssignments.Verify(m => m.GetRawScore(_student, _course), Times.Once);
+    }
+
+    private Course CreateExamCourse() {
+      return new Course {
+        CourseId = 42,
+        Name = "Exam Course for Testing",
+        Type = ExamType.Exam,
+        MaxRawAssignmentsScore = 1000,
+        TotalClasses = 30,
+        MaxAttendanceScore = 20
+      };
     }
   }
 }
