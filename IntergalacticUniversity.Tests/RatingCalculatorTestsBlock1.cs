@@ -89,7 +89,7 @@ namespace IntergalacticUniversity.Tests {
       Assert.That(result, Is.EqualTo(CreditMaxCurrent).Within(0.001));
     }
 
-    // Исправленный тест 1.4: Убраны пустые строки после комментариев
+    // Исправленный тест 1.4:
     [Test]
     public void CalculateTotalScore_WithCredit_AddsExamScoreCorrectly() {
       // Ручной расчет для получения 75 текущего балла: 75 = (raw / 1000) * 60 + (30 / 30) * 20
