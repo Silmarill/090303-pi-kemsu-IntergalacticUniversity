@@ -89,14 +89,18 @@ namespace IntergalacticUniversity.Tests {
       Assert.That(result, Is.EqualTo(CreditMaxCurrent).Within(0.001));
     }
 
+    // Исправленный тест 1.4
     [Test]
     public void CalculateTotalScore_WithCredit_AddsExamScoreCorrectly() {
       // Ручной расчет:
-      // current = (raw / 1000) * 60 + (30 / 30) * 20 = 75
-      // (raw / 1000) * 60 + 20 = 75
-      // (raw / 1000) * 60 = 55
-      // raw / 1000 = 55 / 60 = 0.916666...
-      // raw = 916.666...
+      // 1. Текущий балл должен быть 75 (по условию зачета).
+      // 2. Максимум текущего балла = 80 (60 за задания + 20 за посещаемость).
+      // 3. Доля заданий = 60/80 = 0.75 от текущего балла. Доля посещений = 20/80 = 0.25.
+      // 4. Нужно: AssignmentPart + AttendancePart = 75.
+      // 5. Пусть посещения = 100% (30/30), тогда AttendancePart = 20.
+      // 6. AssignmentPart = 75 - 20 = 55.
+      // 7. 55 баллов из 60 = 91.666...% заданий.
+      // 8. 91.666% от 1000 = 916.666... баллов.
 
       const double RawScoreForCredit = 916.6666666666666;
       const int AttendedClassesForCredit = 30;

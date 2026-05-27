@@ -18,6 +18,10 @@ namespace IntergalacticUniversity.Tests {
     private Student _student;
     private Course _course;
 
+    // SA1202: Public members (тесты) должны быть перед private методами.
+    // Сначала идут private поля, потом Helper-метод, потом SetUp, потом Тесты.
+
+    // Helper method to create a real course object with valid data
     private Course CreateExamCourse() {
       return new Course {
         CourseId = 42,
