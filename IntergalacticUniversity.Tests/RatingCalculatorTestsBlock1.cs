@@ -13,7 +13,6 @@ namespace IntergalacticUniversity.Tests {
     private const double CreditMaxRawScore = 1000;
     private const int CreditTotalClasses = 30;
     private const int CreditMaxAttendanceScore = 15;
-    private const int CreditMaxCurrent = 80;
 
     private const double CreditBonusPoints = 20;
 
@@ -43,8 +42,7 @@ namespace IntergalacticUniversity.Tests {
         Type = ExamType.Credit,
         MaxRawAssignmentsScore = CreditMaxRawScore,
         TotalClasses = CreditTotalClasses,
-        MaxAttendanceScore = CreditMaxAttendanceScore,
-        MaxCurrent = CreditMaxCurrent
+        MaxAttendanceScore = CreditMaxAttendanceScore
       };
 
       _mockAttendance = new Mock<IAttendanceRepository>();
@@ -86,15 +84,20 @@ namespace IntergalacticUniversity.Tests {
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(MaxAttendanceForCredit);
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
-      Assert.That(result, Is.EqualTo(CreditMaxCurrent).Within(0.001));
+      Assert.That(result, Is.EqualTo(80.0).Within(0.001));
     }
 
-    // Исправленный тест 1.4:
+    // Исправленный тест 1.4
     [Test]
     public void CalculateTotalScore_WithCredit_AddsExamScoreCorrectly() {
-      // Ручной расчет для получения 75 текущего балла: 75 = (raw / 1000) * 60 + (30 / 30) * 20
-      // Отсюда raw = 916.666...
-      const double RawScoreForCredit = 916.6666666666666;
+      // Ручной расчет по подсказке преподавателя:
+      // 1. При полной посещаемости (30/30) студент получает 15 баллов (MaxAttendanceScore = 15).
+      // 2. Для текущего балла 75 нужно, чтобы задания дали 60 баллов (75 - 15 = 60).
+      // 3. Максимум за задания = 80 - 15 = 65.
+      // 4. Решаем уравнение: rawScore / 1000 * 65 = 60
+      // 5. rawScore = 60 * 1000 / 65 ≈ 923.0769230769231
+
+      const double RawScoreForCredit = 923.0769230769231;
       const int AttendedClassesForCredit = 30;
 
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(RawScoreForCredit);
@@ -102,7 +105,7 @@ namespace IntergalacticUniversity.Tests {
 
       double result = _calculator.CalculateTotalScore(_student, _creditCourse, CreditBonusPoints);
 
-      // 75 + 20 бонус = 95
+      // 75 (текущий) + 20 (бонус) = 95
       Assert.That(result, Is.EqualTo(95.0).Within(0.001));
     }
   }

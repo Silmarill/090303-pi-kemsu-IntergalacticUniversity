@@ -18,6 +18,17 @@ namespace IntergalacticUniversity.Tests {
     private Student _student;
     private Course _course;
 
+    private Course CreateExamCourse() {
+      return new Course {
+        CourseId = 42,
+        Name = "Exam Course for Testing",
+        Type = ExamType.Exam,
+        MaxRawAssignmentsScore = 1000,
+        TotalClasses = 30,
+        MaxAttendanceScore = 20
+      };
+    }
+
     [SetUp]
     public void Setup() {
       _mockAttendance = new Mock<IAttendanceRepository>(MockBehavior.Strict);
@@ -27,7 +38,6 @@ namespace IntergalacticUniversity.Tests {
       _course = CreateExamCourse();
     }
 
-    // Проверка 3.1:
     [Test]
     public void CalculateCurrentScore_WhenCalled_CallsRepositoriesExactlyOnce() {
       _ = _mockAttendance.Setup(m => m.GetAttendedClasses(_student, _course)).Returns(DefaultAttendance);
@@ -39,7 +49,6 @@ namespace IntergalacticUniversity.Tests {
       _mockAssignments.Verify(m => m.GetRawScore(_student, _course), Times.Once);
     }
 
-    // Проверка 3.2:
     [Test]
     public void CalculateCurrentScore_WhenAssignmentsNull_CalculatesOnlyAttendance() {
       _ = _mockAssignments.Setup(m => m.GetRawScore(_student, _course)).Returns((int?)null);
@@ -47,10 +56,10 @@ namespace IntergalacticUniversity.Tests {
 
       double result = _calculator.CalculateCurrentScore(_student, _course);
 
+      // Расчет: (attended / totalClasses) * maxAttendanceScore = (15 / 30) * 20 = 10
       Assert.That(result, Is.EqualTo(10.0).Within(0.001));
     }
 
-    // Проверка 3.3:
     [Test]
     public void CalculateTotalScore_CallsCalculateCurrentScore_DoesNotCallRepositoriesTwice() {
       _ = _mockAttendance.Setup(m => m.GetAttendedClasses(_student, _course)).Returns(TotalScoreAttendance);
@@ -62,7 +71,6 @@ namespace IntergalacticUniversity.Tests {
       _mockAssignments.Verify(m => m.GetRawScore(_student, _course), Times.Once);
     }
 
-    // Проверка 3.4:
     [Test]
     public void CalculateCurrentScore_WhenRepositoryThrowsException_ThrowsSameException() {
       _ = _mockAssignments.Setup(m => m.GetRawScore(_student, _course)).Returns(100);
@@ -72,17 +80,6 @@ namespace IntergalacticUniversity.Tests {
       TimeoutException? ex = Assert.Throws<TimeoutException>(() => _calculator.CalculateCurrentScore(_student, _course));
 
       _mockAssignments.Verify(m => m.GetRawScore(_student, _course), Times.Once);
-    }
-
-    private Course CreateExamCourse() {
-      return new Course {
-        CourseId = 42,
-        Name = "Exam Course for Testing",
-        Type = ExamType.Exam,
-        MaxRawAssignmentsScore = 1000,
-        TotalClasses = 30,
-        MaxAttendanceScore = 20
-      };
     }
   }
 }
