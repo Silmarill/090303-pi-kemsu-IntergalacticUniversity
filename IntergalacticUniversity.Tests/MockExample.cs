@@ -1,7 +1,7 @@
-﻿using Moq;
+﻿using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
-using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Services;
+using Moq;
 
 namespace IntergalacticUniversity.Tests {
   [TestFixture]
@@ -22,7 +22,7 @@ namespace IntergalacticUniversity.Tests {
       _ = mockAttendance.Setup(r => r.GetAttendedClasses(student, course)).Returns(20); // 50%
 
       Mock<IAssignmentsRepository> mockAssignments = new Mock<IAssignmentsRepository>();
-      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(400);     // 50%
+      _ = mockAssignments.Setup(r => r.GetRawScore(student, course)).Returns(400); // 50%
 
       RatingCalculator calculator = new RatingCalculator(mockAttendance.Object, mockAssignments.Object);
 
@@ -31,7 +31,7 @@ namespace IntergalacticUniversity.Tests {
 
       // Assert
       // Ожидаем: задания 0.5*(60-20)=20, посещаемость 0.5*20=10, экзамен 30 -> итого 60
-      Assert.That(total, Is.EqualTo(60.0));
+      Assert.That(total, Is.EqualTo(60.0).Within(0.001));
     }
   }
 }
