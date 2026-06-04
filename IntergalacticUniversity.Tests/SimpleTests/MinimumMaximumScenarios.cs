@@ -74,28 +74,36 @@ namespace IntergalacticUniversity.Tests.SimpleTests {
 
       double result = _calculator.CalculateCurrentScore(_student, _creditCourse);
 
-      Assert.That(result, Is.LessThanOrEqualTo(80.0));
+      Assert.That(result, Is.EqualTo(80.0).Within(0.001));
     }
 
     [Test]
     public void CalculateTotalScore_ForCreditCourseWithMaxCurrentAndMaxExam_Returns95() {
-      Course customCreditCourse = new Course {
-        CourseId = 103,
-        Name = "Custom Credit Course",
-        Type = ExamType.Credit,
-        MaxRawAssignmentsScore = 1000,
-        TotalClasses = 40,
-        MaxAttendanceScore = 10
-      };
+      // Зачётный курс: maxCurrent = 80, maxAttendance = 15, maxAssignments = 65.
+      // assignments = (raw / MaxRaw) * 65, attendance = (attended / TotalClasses) * 15.
+      // current = assignments + attendance; total = min(current + min(credit, 20), 100).
+      const double assignmentsRawScore = 60000.0 / 65.0; // 60 из 65 баллов заданий
 
-      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, customCreditCourse)).Returns(1000);
-      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, customCreditCourse)).Returns(40);
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(assignmentsRawScore);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(40);
 
-      double currentScore = _calculator.CalculateCurrentScore(_student, customCreditCourse);
-      double totalScore = _calculator.CalculateTotalScore(_student, customCreditCourse, 20);
+      double currentScore = _calculator.CalculateCurrentScore(_student, _creditCourse);
+      double totalScore = _calculator.CalculateTotalScore(_student, _creditCourse, 20);
+
+      Assert.That(currentScore, Is.EqualTo(75.0).Within(0.001));
+      Assert.That(totalScore, Is.EqualTo(95.0).Within(0.001));
+    }
+
+    [Test]
+    public void CalculateTotalScore_ForCreditCourseWithMaxCurrentAndMaxCredit_Returns100() {
+      _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _creditCourse)).Returns(1000);
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _creditCourse)).Returns(40);
+
+      double currentScore = _calculator.CalculateCurrentScore(_student, _creditCourse);
+      double totalScore = _calculator.CalculateTotalScore(_student, _creditCourse, 20);
 
       Assert.That(currentScore, Is.EqualTo(80.0).Within(0.001));
-      Assert.That(totalScore, Is.EqualTo(95.0).Within(0.001));
+      Assert.That(totalScore, Is.EqualTo(100.0).Within(0.001));
     }
   }
 }
