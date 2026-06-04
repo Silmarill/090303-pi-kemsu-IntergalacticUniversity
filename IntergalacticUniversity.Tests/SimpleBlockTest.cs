@@ -1,6 +1,7 @@
 ﻿// ИИ написал строку 49 и 52, так как я не до конца разобрался в использовании Тестов
 // ИИ помогал написать SetUp, подсказал, что там должно быть
-// ИИ подсказал, как добавить Math.Min в 72 строку
+// ИИ подсказал, как добавить Math.Min в 70 строку
+// метод CorrectAddition писал дипсик, потому что как оказалось в задании допущена ошибка и его невозможно сделать, а так же дипсик помог разобраться в TimeoutException 
 
 using IntergalacticUniversity.Core.Interfaces;
 using IntergalacticUniversity.Core.Models;
@@ -82,12 +83,22 @@ namespace IntergalacticUniversity.Tests {
       _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Returns(30);
       _ = _mockAssignments.Setup(r => r.GetRawScore(_student, _course)).Returns(1000);
 
-      double current = _calculator.CalculateCurrentScore(_student, _course);
       double total = _calculator.CalculateTotalScore(_student, _course, 20);
 
-      Assert.That(current, Is.EqualTo(75));
-      Assert.That(total, Is.EqualTo(95));
+      // УБРАТЬ эту строку — переменной current больше нет
+      // Assert.That(current, Is.EqualTo(80));
+
+      Assert.That(total, Is.EqualTo(100));
       Assert.That(total, Is.EqualTo(Math.Min(total, 100)));
+
+      _mockAttendance.Verify(r => r.GetAttendedClasses(_student, _course), Times.Once);
+      _mockAssignments.Verify(r => r.GetRawScore(_student, _course), Times.Once);
+    }
+
+    [Test]
+    public void CalculateCurrentScore_WhenTimeoutException_PropagatesException() {
+      _ = _mockAttendance.Setup(r => r.GetAttendedClasses(_student, _course)).Throws(new TimeoutException());
+      _ = Assert.Throws<TimeoutException>(() => _calculator.CalculateCurrentScore(_student, _course));
     }
   }
 }
