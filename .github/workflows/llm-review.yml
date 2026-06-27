@@ -201,9 +201,11 @@ jobs:
               review = review.substring(0, 60000) + '\n\n... отчет обрезан из-за ограничения размера комментария ...';
             }
 
-            const body = `## 🤖 LLM код-ревью
-
-${review}`;
+            const body = [
+              '## 🤖 LLM код-ревью',
+              '',
+              review
+            ].join('\n');
 
             await github.rest.issues.createComment({
               owner,
