@@ -9,13 +9,11 @@ namespace IntergalacticUniversity {
       Console.OutputEncoding = System.Text.Encoding.UTF8;
       Console.WriteLine("=== Система расчёта рейтинга Межгалактического Университета ===\n");
 
-      // Заглушки репозиториев (в реальном проекте их бы заменили на настоящие)
       IAttendanceRepository attendanceRepo = new DummyAttendanceRepository();
       IAssignmentsRepository assignmentsRepo = new DummyAssignmentsRepository();
       RatingCalculator calculator = new RatingCalculator(attendanceRepo, assignmentsRepo);
 
-      // Данные студента и курса (можно заменить на ввод)
-      Student student = new Student { Id = 1, Name = "Алексей Звёздный" };
+      Student student = new Student { Id = 1, Name = "Гена Крокодил" };
 
       Console.WriteLine("Выберите тип аттестации: 1 - Экзамен, 2 - Зачёт");
       string choice = Console.ReadLine();
@@ -33,7 +31,7 @@ namespace IntergalacticUniversity {
       Console.Write("Введите максимально возможные баллы за все задания курса: ");
       double maxRaw = double.Parse(Console.ReadLine());
 
-      Console.Write($"Введите текщие баллы за задания (от 0 до {maxRaw}): ");
+      Console.Write($"Введите текущие баллы за задания (от 0 до {maxRaw}): ");
       double rawScore = double.Parse(Console.ReadLine());
 
       Console.Write("Общее количество пар по дисциплине: ");
@@ -62,22 +60,18 @@ namespace IntergalacticUniversity {
         MaxAttendanceScore = maxAttendance
       };
 
-      // Настраиваем заглушки репозиториев на введённые данные
       ((DummyAttendanceRepository)attendanceRepo).SetAttended(attended);
       ((DummyAssignmentsRepository)assignmentsRepo).SetRawScore(rawScore);
 
-      // Расчёт
       double currentScore = calculator.CalculateCurrentScore(student, course);
       double totalScore = calculator.CalculateTotalScore(student, course, examScore);
+
       string grade = calculator.ConvertToGrade(totalScore);
 
-      // Вывод результатов
-      Console.WriteLine("\n========================================");
       Console.WriteLine($"Студент: {student.Name}");
       Console.WriteLine($"Курс: {course.Name} ({course.Type})");
       Console.WriteLine($"Посещаемость: {attended} / {totalClasses} ({100.0 * attended / totalClasses:F1}% = {1.0 * attended / totalClasses * maxAttendance:F0} баллов из {maxAttendance})");
 
-      //   double rawPercent = maxRaw > 0 ? (rawScore / maxRaw) * 100 : 0;
       double rawPercent = 0;
       if (maxRaw > 0) {
         rawPercent = rawScore / maxRaw * 100;
@@ -90,7 +84,6 @@ namespace IntergalacticUniversity {
 
       Console.WriteLine($"Итоговый суммарный балл: {totalScore:F0} из 100");
       Console.WriteLine($"Оценка: {grade}");
-      Console.WriteLine("========================================\n");
 
       Console.WriteLine("Нажмите любую клавишу для выхода...");
       _ = Console.ReadKey();
