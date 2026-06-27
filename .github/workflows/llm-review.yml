@@ -8,6 +8,11 @@ on:
         description: 'Номер Pull Request для ревью'
         required: true
         type: number
+      model:
+        description: 'Модель Ollama, например qwen3.5:9b'
+        required: false
+        default: 'qwen3.5:9b'
+        type: string
 
 jobs:
   llm-review:
@@ -36,6 +41,17 @@ jobs:
           echo "number=$PR" >> "$GITHUB_OUTPUT"
           echo "PR_NUMBER=$PR" >> "$GITHUB_ENV"
 
+      - name: Установить модель LLM
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.model }}" ]; then
+            MODEL="${{ github.event.inputs.model }}"
+          else
+            MODEL="qwen3.5:9b"
+          fi
+
+          echo "LLM_MODEL=$MODEL" >> "$GITHUB_ENV"
+          echo "Используется модель: $MODEL"
+
       - name: Получить код репозитория из PR
         uses: actions/checkout@v4
         with:
@@ -57,6 +73,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import json
+          import os
 
           root = Path(".")
 
@@ -145,7 +162,7 @@ jobs:
           prompt = "".join(body_parts)
 
           request = {
-              "model": "qwen3.5:9b",
+              "model": os.environ.get("LLM_MODEL", "qwen3.5:9b"),
               "prompt": prompt,
               "stream": False
           }
@@ -174,15 +191,46 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
 
           data = json.loads(Path("ollama-response.json").read_text(encoding="utf-8"))
+
+          model = data.get("model", "unknown")
+          created_at = data.get("created_at")
+          total_duration_ns = data.get("total_duration")
+
+          if created_at:
+              dt_utc = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+              if dt_utc.tzinfo is None:
+                  dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+              dt_kemerovo = dt_utc.astimezone(ZoneInfo("Asia/Novokuznetsk"))
+              created_text = dt_kemerovo.strftime("%Y-%m-%d %H:%M:%S UTC%z")
+          else:
+              created_text = "unknown"
+
+          if isinstance(total_duration_ns, int):
+              duration_text = f"{total_duration_ns / 1_000_000_000:.2f} сек."
+          else:
+              duration_text = "unknown"
 
           review = data.get("response", "").strip()
 
           if not review:
               review = "Не удалось получить текст ревью из ответа Ollama."
 
-          Path("llm-review.md").write_text(review, encoding="utf-8")
+          result = "\n".join([
+              f"**Модель:** `{model}`  ",
+              f"**Дата генерации:** {created_text}  ",
+              f"**Время выполнения:** {duration_text}",
+              "",
+              "---",
+              "",
+              review,
+              ""
+          ])
+
+          Path("llm-review.md").write_text(result, encoding="utf-8")
           PY
 
       - name: Отправить ревью в PR
