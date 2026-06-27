@@ -1,0 +1,214 @@
+name: LLM код-ревью по PR
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Номер Pull Request для ревью'
+        required: true
+        type: number
+
+jobs:
+  llm-review:
+    if: |
+      (github.event_name != 'pull_request_target' ||
+       (github.event.pull_request.user.login == 'Silmarill' && github.event.pull_request.base.ref == 'main')) &&
+      (github.event_name != 'synchronize' || github.event.before != github.event.after)
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Установить номер PR
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            PR="${{ github.event.number }}"
+          else
+            PR="${{ github.event.inputs.pr_number }}"
+          fi
+
+          echo "number=$PR" >> "$GITHUB_OUTPUT"
+          echo "PR_NUMBER=$PR" >> "$GITHUB_ENV"
+
+      - name: Получить код репозитория из PR
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: refs/pull/${{ steps.pr.outputs.number }}/head
+          fetch-depth: 1
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+
+      - name: Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: ollama-server.tail8adcc2.ts.net
+
+      - name: Сформировать prompt из исходников
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path(".")
+
+          ignored_dirs = {
+              ".git",
+              ".github",
+              "bin",
+              "obj",
+              "packages",
+              ".vs",
+              ".idea",
+              "node_modules"
+          }
+
+          allowed_extensions = {
+              ".cs",
+              ".csproj",
+              ".sln",
+              ".json",
+              ".config"
+          }
+
+          files = []
+
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+
+              parts = set(path.parts)
+              if parts & ignored_dirs:
+                  continue
+
+              if path.suffix.lower() not in allowed_extensions:
+                  continue
+
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  text = path.read_text(encoding="utf-8", errors="replace")
+
+              # защита от слишком больших файлов
+              if len(text) > 60_000:
+                  text = text[:60_000] + "\n\n... файл обрезан из-за большого размера ..."
+
+              files.append((str(path), text))
+
+          if not files:
+              raise SystemExit("Не найдено файлов для анализа")
+
+          header = """Сделай код-ревью C# проекта.
+
+Оцени:
+1. Чистоту и читаемость кода.
+2. Архитектурные ошибки.
+3. Нарушения принципов ООП, SOLID, DRY, SRP.
+4. Проблемы именования, структуры, обработки ошибок и пользовательского ввода.
+5. Что студенту стоит улучшить.
+6. Вопросы по теоретической базе для самоконтроля с учетом найденных ошибок.
+
+Результат предоставь в формате Markdown.
+
+Структура ответа:
+# Код-ревью
+
+## Краткое резюме
+
+## Сильные стороны
+
+## Проблемы чистоты и читаемости
+
+## Архитектурные ошибки
+
+## Рекомендации по улучшению
+
+## Вопросы для самоконтроля
+
+Ниже представлены файлы проекта:
+"""
+
+          body_parts = [header]
+
+          for filename, text in files:
+              body_parts.append(f"\n\n---\n\n## Файл: `{filename}`\n\n```text\n{text}\n```")
+
+          prompt = "".join(body_parts)
+
+          request = {
+              "model": "qwen3.5:9b",
+              "prompt": prompt,
+              "stream": False
+          }
+
+          Path("ollama-request.json").write_text(
+              json.dumps(request, ensure_ascii=False),
+              encoding="utf-8"
+          )
+
+          print(f"Файлов добавлено в prompt: {len(files)}")
+          print(f"Размер prompt: {len(prompt)} символов")
+          PY
+
+      - name: Запрос к Ollama
+        run: |
+          curl -sS \
+            --fail \
+            --max-time 600 \
+            http://ollama-server.tail8adcc2.ts.net:11434/api/generate \
+            -H "Content-Type: application/json" \
+            -d @ollama-request.json \
+            > ollama-response.json
+
+      - name: Извлечь Markdown из ответа Ollama
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("ollama-response.json").read_text(encoding="utf-8"))
+
+          review = data.get("response", "").strip()
+
+          if not review:
+              review = "Не удалось получить текст ревью из ответа Ollama."
+
+          Path("llm-review.md").write_text(review, encoding="utf-8")
+          PY
+
+      - name: Отправить ревью в PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN || github.token }}
+          script: |
+            const fs = require('fs');
+
+            const prNumber = Number('${{ steps.pr.outputs.number }}');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            let review = fs.readFileSync('llm-review.md', 'utf8');
+
+            if (review.length > 60000) {
+              review = review.substring(0, 60000) + '\n\n... отчет обрезан из-за ограничения размера комментария ...';
+            }
+
+            const body = `## 🤖 LLM код-ревью
+
+${review}`;
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body
+            });
